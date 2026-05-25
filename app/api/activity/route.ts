@@ -29,7 +29,8 @@ export async function GET(req: Request) {
     const events = await tradesRepo.activityFeed(parsed.data);
 
     // Normalize to a clean response shape
-    const data = events.map((event) => {
+    type ActivityEvent = (typeof events)[number];
+    const data = events.map((event: ActivityEvent) => {
       const latestDecision = event.decisions[0] ?? null;
       const latestExecution = latestDecision?.executions[0] ?? null;
 
