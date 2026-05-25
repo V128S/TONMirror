@@ -1,0 +1,56 @@
+# ─── Dependencies ─────────────────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ─── Next.js ──────────────────────────────────────────────────────────────────
+.next/
+out/
+
+# ─── Environment & Secrets ────────────────────────────────────────────────────
+# NEVER commit real env files — only .env.example is allowed
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env.*.local
+.env.*
+!.env.example
+
+# ─── Build artifacts ──────────────────────────────────────────────────────────
+dist/
+build/
+tsconfig.tsbuildinfo
+
+# ─── Database ─────────────────────────────────────────────────────────────────
+prisma/*.db
+prisma/*.db-journal
+
+# ─── Testing ──────────────────────────────────────────────────────────────────
+coverage/
+playwright-report/
+test-results/
+.playwright/
+
+# ─── Editor & OS ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/settings.json
+*.swp
+*.swo
+
+# ─── AI / local dev tooling (internal only — not for public repo) ─────────────
+CLAUDE.md
+.claude/
+
+# ─── Package manager ──────────────────────────────────────────────────────────
+# .npmrc can contain auth tokens — exclude to be safe
+# If yours is purely config (no tokens), you can remove this line
+.npmrc.local
+
+# ─── Misc ────────────────────────────────────────────────────────────────────
+*.log
+*.tgz
+.vercel

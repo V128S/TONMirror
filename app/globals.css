@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Reset & base ─────────────────────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    /* Prevent font scaling in Telegram Mini App */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-surface-0 text-text-primary font-sans;
+    /* Telegram viewport safe area */
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    overscroll-behavior: none;
+  }
+
+  /* Prevent blue highlight on tap on mobile */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* ── Utilities ────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  /* Scrollable area that hides scrollbar but keeps scroll */
+  .scroll-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scroll-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Gradient text */
+  .text-gradient-ton {
+    @apply bg-gradient-to-r from-ton-400 to-teal-400 bg-clip-text text-transparent;
+  }
+}
+
+/* ── TON Connect modal fix for dark theme ─────────────────────────────────── */
+[data-tc-wallets-modal-container="true"] {
+  --tg-color-scheme: dark;
+}

@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum StrategyMode {
+  fixed_amount
+  percent_of_leader
+}
+
+enum LeaderSourceType {
+  seed
+  manual
+  imported
+}
+
+enum TradeSourceProvider {
+  mock
+  ton_webhook
+}
+
+enum TradeStatus {
+  pending
+  processed
+  failed
+}
+
+enum DecisionType {
+  accepted
+  rejected
+  manual_review
+}
+
+enum ExecutionStatus {
+  pending
+  quoted
+  ready
+  submitted
+  confirmed
+  failed
+  skipped
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model User {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  telegramId  String?  @unique
+  username    String?
+  displayName String?
+  isDemo      Boolean  @default(false)
+
+  telegramProfile  TelegramProfile?
+  walletConnection WalletConnection[]
+  strategies       FollowStrategy[]
+  decisions        CopyDecision[]
+  executions       CopyExecution[]
+  auditLogs        AuditLog[]
+}
+
+model TelegramProfile {
+  id             String  @id @default(cuid())
+  userId         String  @unique
+  telegramUserId String  @unique
+  username       String?
+  firstName      String?
+  lastName       String?
+  photoUrl       String?
+  languageCode   String?
+  rawInitDataJson String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WalletConnection {
+  id           String    @id @default(cuid())
+  userId       String
+  address      String
+  walletAppName String?
+  chain        String    @default("TON")
+  isActive     Boolean   @default(true)
+  connectedAt  DateTime  @default(now())
+  lastUsedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, address])
+}
+
+model LeaderWallet {
+  id             String           @id @default(cuid())
+  nickname       String
+  address        String           @unique
+  tags           String[]
+  riskScore      Int              @default(5)
+  activityScore  Float            @default(0.5)
+  winRateApprox  Float            @default(0.5)
+  notes          String?
+  isActive       Boolean          @default(true)
+  sourceType     LeaderSourceType @default(seed)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  tradeEvents TradeEvent[]
+  strategies  FollowStrategy[]
+}
+
+model FollowStrategy {
+  id                  String       @id @default(cuid())
+  userId              String
+  leaderWalletId      String
+  mode                StrategyMode @default(fixed_amount)
+  fixedAmount         Float?
+  percentOfLeader     Float?
+  maxTradeSize        Float?
+  slippageBps         Int          @default(100)
+  allowedTokens       String[]
+  blockedTokens       String[]
+  copySells           Boolean      @default(false)
+  dailyMaxSpend       Float?
+  requireManualConfirm Boolean     @default(true)
+  isPaused            Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leaderWallet LeaderWallet @relation(fields: [leaderWalletId], references: [id], onDelete: Cascade)
+  decisions    CopyDecision[]
+
+  @@unique([userId, leaderWalletId])
+}
+
+model TradeEvent {
+  id                 String              @id @default(cuid())
+  externalId         String              @unique
+  leaderWalletId     String
+  txHash             String
+  timestamp          DateTime
+  soldToken          String
+  boughtToken        String
+  soldAmountDecimal  Float
+  boughtAmountDecimal Float
+  usdEstimate        Float?
+  dex                String              @default("ston.fi")
+  status             TradeStatus         @default(pending)
+  rawSourceJson      Json
+  sourceProvider     TradeSourceProvider @default(mock)
+  createdAt          DateTime            @default(now())
+
+  leaderWallet LeaderWallet   @relation(fields: [leaderWalletId], references: [id], onDelete: Cascade)
+  decisions    CopyDecision[]
+}
+
+model CopyDecision {
+  id                    String       @id @default(cuid())
+  tradeEventId          String
+  userId                String
+  strategyId            String
+  decision              DecisionType
+  reason                String
+  plannedSoldToken      String
+  plannedBoughtToken    String
+  plannedAmountDecimal  Float?
+  estimatedSlippageBps  Int?
+  riskFlags             String[]
+  createdAt             DateTime     @default(now())
+
+  tradeEvent TradeEvent     @relation(fields: [tradeEventId], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strategy   FollowStrategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  executions CopyExecution[]
+}
+
+model CopyExecution {
+  id            String          @id @default(cuid())
+  decisionId    String
+  userId        String
+  status        ExecutionStatus @default(pending)
+  quoteId       String?
+  routeJson     Json?
+  estimatedOut  Float?
+  txHash        String?
+  failureReason String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  decision CopyDecision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TokenMetadata {
+  id         String  @id @default(cuid())
+  symbol     String  @unique
+  name       String
+  address    String  @unique
+  decimals   Int     @default(9)
+  isStable   Boolean @default(false)
+  isVerified Boolean @default(true)
+  iconUrl    String?
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  entityType  String
+  entityId    String
+  action      String
+  payloadJson Json?
+  createdAt   DateTime @default(now())
+
+  actor User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+}
