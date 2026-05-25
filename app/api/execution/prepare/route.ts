@@ -3,14 +3,18 @@ import { z } from "zod";
 import { executionService } from "@/server/services/execution.service";
 
 const bodySchema = z.object({
-  executionId: z.string().cuid(),
-  quoteId:     z.string(),
+  executionId:    z.string().cuid(),
+  quoteId:        z.string(),
+  /** Connected wallet address — required for live Omniston; optional in demo mode */
+  walletAddress:  z.string().optional(),
 });
 
 /**
  * POST /api/execution/prepare
- * Builds a PreparedExecution for TON Connect signing.
- * Phase 2: returns stub. Phase 3: wires Omniston prepareExecution().
+ * Builds a PreparedTransaction (messages) for TON Connect signing.
+ *
+ * Phase 3: wires real Omniston tonBuildSwap when NEXT_PUBLIC_ENABLE_LIVE_SOURCE=true.
+ * Phase 4 TODO: add walletAddress validation (require when live source is on).
  */
 export async function POST(req: Request) {
   try {
@@ -27,7 +31,8 @@ export async function POST(req: Request) {
     const prepared = await executionService.prepareExecution(parsed.data);
     return NextResponse.json({ data: prepared });
   } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to prepare execution";
     console.error("[POST /api/execution/prepare]", err);
-    return NextResponse.json({ error: "Failed to prepare execution" }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

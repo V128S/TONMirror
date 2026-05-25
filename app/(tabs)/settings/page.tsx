@@ -3,17 +3,21 @@
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { useTelegramUser } from "@/components/telegram/TelegramProvider";
+import { useWallet } from "@/hooks/useWallet";
 import { isDemoMode } from "@/lib/env";
 import { useEmitDemoTrade, useResetDemoData } from "@/hooks/useActivity";
+import { shortenAddress, formatAmount } from "@/lib/format";
 import { useState } from "react";
 
 type FeedbackState = { type: "success" | "error"; message: string } | null;
 
 export default function SettingsPage() {
-  const user = useTelegramUser();
-  const emitTrade    = useEmitDemoTrade();
-  const resetDemo    = useResetDemoData();
+  const user      = useTelegramUser();
+  const wallet    = useWallet();
+  const emitTrade = useEmitDemoTrade();
+  const resetDemo = useResetDemoData();
   const [feedback, setFeedback] = useState<FeedbackState>(null);
 
   const showFeedback = (type: "success" | "error", message: string) => {
@@ -87,15 +91,35 @@ export default function SettingsPage() {
         </CardBody>
       </Card>
 
-      {/* Wallet */}
+      {/* TON Wallet */}
       <Card>
         <CardHeader>
-          <CardTitle>Wallet</CardTitle>
+          <CardTitle>TON Wallet</CardTitle>
         </CardHeader>
         <CardBody>
-          <p className="text-text-muted text-sm mb-3">No wallet connected.</p>
-          {/* TONConnectButton wired in Phase 3 */}
-          <Button variant="secondary" size="sm">Connect TON Wallet</Button>
+          {wallet.isConnected ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="size-2 rounded-full bg-green-400 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-text-primary font-medium text-sm truncate">
+                    {wallet.address}
+                  </p>
+                  {wallet.walletName && (
+                    <p className="text-text-muted text-xs mt-0.5">{wallet.walletName}</p>
+                  )}
+                </div>
+              </div>
+              <ConnectButton />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-text-muted text-sm">
+                Connect your TON wallet to sign copy-trade transactions.
+              </p>
+              <ConnectButton />
+            </div>
+          )}
         </CardBody>
       </Card>
 

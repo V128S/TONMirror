@@ -1,25 +1,27 @@
 "use client";
 
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
+import { Badge, DecisionBadge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { formatUsd, formatRelativeTime, formatAmount } from "@/lib/format";
 import { useStrategies } from "@/hooks/useStrategies";
 import { useActivity } from "@/hooks/useActivity";
-import { DecisionBadge } from "@/components/ui/Badge";
+import { useWallet } from "@/hooks/useWallet";
 import Link from "next/link";
 
 export default function HomePage() {
   const { data: strategies, isLoading: strategiesLoading } = useStrategies();
   const { data: activity,   isLoading: activityLoading   } = useActivity({ limit: 3 });
+  const wallet = useWallet();
 
-  const activeCount  = strategies?.filter((s) => !s.isPaused).length ?? 0;
-  const copiedToday  = activity?.filter(
+  const activeCount = strategies?.filter((s) => !s.isPaused).length ?? 0;
+  const copiedToday = activity?.filter(
     (e) =>
       e.decision?.outcome === "accepted" &&
       new Date(e.timestamp).toDateString() === new Date().toDateString(),
   ).length ?? 0;
-  const totalVolume  = activity?.reduce((s, e) => s + (e.usdEstimate ?? 0), 0) ?? 0;
+  const totalVolume = activity?.reduce((s, e) => s + (e.usdEstimate ?? 0), 0) ?? 0;
 
   return (
     <div className="px-4 pt-6 space-y-4 pb-6">
@@ -32,19 +34,32 @@ export default function HomePage() {
         <Badge variant="info">Demo</Badge>
       </div>
 
-      {/* Wallet status — Phase 3 will wire TON Connect */}
+      {/* Wallet card */}
       <Card>
         <CardHeader>
           <CardTitle>Wallet</CardTitle>
         </CardHeader>
         <CardBody>
-          <p className="text-text-muted">Not connected</p>
-          <Link
-            href="/settings"
-            className="mt-3 inline-flex items-center gap-1.5 text-ton-400 text-sm font-medium"
-          >
-            Connect wallet →
-          </Link>
+          {!wallet.isRestored ? (
+            <Skeleton className="h-9 w-36 rounded-2xl" />
+          ) : wallet.isConnected ? (
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs text-text-muted">
+                  {wallet.walletName ?? "Connected"}
+                </p>
+                <p className="text-sm font-mono text-text-primary mt-0.5 truncate">
+                  {wallet.shortAddress}
+                </p>
+              </div>
+              <ConnectButton compact />
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-text-muted text-sm">Not connected</p>
+              <ConnectButton />
+            </div>
+          )}
         </CardBody>
       </Card>
 
