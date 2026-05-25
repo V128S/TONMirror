@@ -137,3 +137,16 @@ test.describe("Quote card", () => {
     await expect(page.locator("text=Confirm Quote →")).toBeVisible();
   });
 });
+
+// ─── Webhook endpoint ─────────────────────────────────────────────────────────
+
+test.describe("Webhook endpoint security", () => {
+  test("returns 403 when live source is disabled (default)", async ({ request }) => {
+    const res = await request.post("/api/webhooks/ton", {
+      data: { event_id: "test", timestamp: 1716670000, account: { address: "UQ…" }, actions: [] },
+      headers: { "x-webhook-secret": "any" },
+    });
+    // Default env has NEXT_PUBLIC_ENABLE_LIVE_SOURCE=false
+    expect(res.status()).toBe(403);
+  });
+});

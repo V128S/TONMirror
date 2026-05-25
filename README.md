@@ -195,8 +195,34 @@ tests/        → unit / integration / e2e
 | Database | PostgreSQL + Prisma |
 | Web3 | @tonconnect/ui-react |
 | DEX | @ston-fi/omniston-sdk-react |
-| Tests | Vitest + Playwright |
-| Package manager | pnpm |
+| Tests | Vitest (18) + Playwright (13) |
+| Package manager | npm / pnpm |
+
+---
+
+## 📚 Docs
+
+| Document | Description |
+|---|---|
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Vercel deploy, BotFather setup, env vars, live webhook config, production checklist |
+| [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) | Step-by-step hackathon demo script (5 min) |
+
+---
+
+## 🧪 Tests
+
+```bash
+npm test -- --run          # 18 unit + integration tests
+npx playwright test        # 13 E2E smoke tests (requires running dev server)
+```
+
+| Suite | Coverage |
+|---|---|
+| Unit — `strategy` evaluator | 10 tests |
+| Unit — `ton-webhook` parser | 8 tests |
+| Integration — `/api/execution/quote` | 8 tests |
+| Integration — `/api/webhooks/ton` | 5 tests |
+| E2E — full demo flow | 13 tests |
 
 ---
 
