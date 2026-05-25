@@ -1,0 +1,82 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { tradesRepo } from "@/server/repositories/trades.repo";
+
+const querySchema = z.object({
+  leaderId: z.string().optional(),
+  limit:    z.coerce.number().int().min(1).max(100).default(30),
+  cursor:   z.string().optional(),
+});
+
+// ─── GET /api/activity ────────────────────────────────────────────────────────
+
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const parsed = querySchema.safeParse({
+      leaderId: searchParams.get("leaderId") ?? undefined,
+      limit:    searchParams.get("limit")    ?? undefined,
+      cursor:   searchParams.get("cursor")   ?? undefined,
+    });
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.flatten().fieldErrors },
+        { status: 422 },
+      );
+    }
+
+    const events = await tradesRepo.activityFeed(parsed.data);
+
+    // Normalize to a clean response shape
+    const data = events.map((event) => {
+      const latestDecision = event.decisions[0] ?? null;
+      const latestExecution = latestDecision?.executions[0] ?? null;
+
+      return {
+        id:                  event.id,
+        externalId:          event.externalId,
+        timestamp:           event.timestamp,
+        txHash:              event.txHash,
+        soldToken:           event.soldToken,
+        boughtToken:         event.boughtToken,
+        soldAmountDecimal:   event.soldAmountDecimal,
+        boughtAmountDecimal: event.boughtAmountDecimal,
+        usdEstimate:         event.usdEstimate,
+        dex:                 event.dex,
+        sourceProvider:      event.sourceProvider,
+        leader: {
+          id:       event.leaderWallet.id,
+          nickname: event.leaderWallet.nickname,
+          address:  event.leaderWallet.address,
+        },
+        decision: latestDecision
+          ? {
+              id:        latestDecision.id,
+              outcome:   latestDecision.decision,
+              reason:    latestDecision.reason,
+              riskFlags: latestDecision.riskFlags,
+              plannedAmountDecimal: latestDecision.plannedAmountDecimal,
+            }
+          : null,
+        execution: latestExecution
+          ? {
+              id:          latestExecution.id,
+              status:      latestExecution.status,
+              estimatedOut: latestExecution.estimatedOut,
+              txHash:      latestExecution.txHash,
+            }
+          : null,
+      };
+    });
+
+    const nextCursor = events.length === parsed.data.limit
+      ? events[events.length - 1]?.id
+      : undefined;
+
+    return NextResponse.json({ data, nextCursor });
+  } catch (err) {
+    console.error("[GET /api/activity]", err);
+    return NextResponse.json({ error: "Failed to load activity" }, { status: 500 });
+  }
+}

@@ -5,6 +5,10 @@ const nextConfig: NextConfig = {
   // Pin workspace root to this directory (prevents lockfile confusion)
   outputFileTracingRoot: path.join(__dirname),
 
+  // Pre-existing eslint-config-next / ESLint 9 flat-config incompatibility.
+  // Type-check still runs via `tsc --noEmit` in CI.
+  eslint: { ignoreDuringBuilds: true },
+
   // Telegram Mini Apps run inside an iframe
   async headers() {
     return [

@@ -1,14 +1,28 @@
+"use client";
+
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { formatUsd, formatRelativeTime, formatAmount } from "@/lib/format";
+import { useStrategies } from "@/hooks/useStrategies";
+import { useActivity } from "@/hooks/useActivity";
+import { DecisionBadge } from "@/components/ui/Badge";
 import Link from "next/link";
 
-/**
- * Home screen — user status, wallet, quick stats, CTA.
- * Data fetching added in Phase 2 (TanStack Query hooks).
- */
 export default function HomePage() {
+  const { data: strategies, isLoading: strategiesLoading } = useStrategies();
+  const { data: activity,   isLoading: activityLoading   } = useActivity({ limit: 3 });
+
+  const activeCount  = strategies?.filter((s) => !s.isPaused).length ?? 0;
+  const copiedToday  = activity?.filter(
+    (e) =>
+      e.decision?.outcome === "accepted" &&
+      new Date(e.timestamp).toDateString() === new Date().toDateString(),
+  ).length ?? 0;
+  const totalVolume  = activity?.reduce((s, e) => s + (e.usdEstimate ?? 0), 0) ?? 0;
+
   return (
-    <div className="px-4 pt-6 space-y-4">
+    <div className="px-4 pt-6 space-y-4 pb-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -18,7 +32,7 @@ export default function HomePage() {
         <Badge variant="info">Demo</Badge>
       </div>
 
-      {/* Wallet status */}
+      {/* Wallet status — Phase 3 will wire TON Connect */}
       <Card>
         <CardHeader>
           <CardTitle>Wallet</CardTitle>
@@ -36,16 +50,30 @@ export default function HomePage() {
 
       {/* Quick stats */}
       <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: "Following",     value: "3" },
-          { label: "Copied today",  value: "0" },
-          { label: "Total volume",  value: "$0" },
-        ].map((stat) => (
-          <Card key={stat.label} className="text-center py-3">
-            <p className="text-xl font-bold text-text-primary">{stat.value}</p>
-            <p className="text-xs text-text-muted mt-0.5">{stat.label}</p>
-          </Card>
-        ))}
+        <Card className="text-center py-3">
+          {strategiesLoading ? (
+            <Skeleton className="w-8 h-6 mx-auto mb-1" />
+          ) : (
+            <p className="text-xl font-bold text-text-primary">{activeCount}</p>
+          )}
+          <p className="text-xs text-text-muted mt-0.5">Following</p>
+        </Card>
+        <Card className="text-center py-3">
+          {activityLoading ? (
+            <Skeleton className="w-8 h-6 mx-auto mb-1" />
+          ) : (
+            <p className="text-xl font-bold text-text-primary">{copiedToday}</p>
+          )}
+          <p className="text-xs text-text-muted mt-0.5">Copied today</p>
+        </Card>
+        <Card className="text-center py-3">
+          {activityLoading ? (
+            <Skeleton className="w-16 h-6 mx-auto mb-1" />
+          ) : (
+            <p className="text-xl font-bold text-text-primary">{formatUsd(totalVolume)}</p>
+          )}
+          <p className="text-xs text-text-muted mt-0.5">Volume</p>
+        </Card>
       </div>
 
       {/* CTA */}
@@ -63,10 +91,43 @@ export default function HomePage() {
           <CardTitle>Recent Events</CardTitle>
         </CardHeader>
         <CardBody>
-          <p className="text-text-muted text-sm">No recent copy activity.</p>
-          <Link href="/activity" className="mt-2 inline-flex text-ton-400 text-xs font-medium">
-            View all activity →
-          </Link>
+          {activityLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="w-full h-8" />
+              <Skeleton className="w-full h-8" />
+            </div>
+          ) : activity && activity.length > 0 ? (
+            <div className="space-y-2">
+              {activity.slice(0, 3).map((event) => (
+                <div key={event.id} className="flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-text-muted truncate">{event.leader.nickname}</p>
+                    <p className="text-sm text-text-primary font-medium">
+                      {formatAmount(event.soldAmountDecimal)} {event.soldToken}{" "}
+                      <span className="text-text-muted">→</span>{" "}
+                      {event.boughtToken}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    {event.decision && <DecisionBadge decision={event.decision.outcome} />}
+                    <span className="text-xs text-text-muted">
+                      {formatRelativeTime(event.timestamp)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              <Link href="/activity" className="mt-2 inline-flex text-ton-400 text-xs font-medium">
+                View all activity →
+              </Link>
+            </div>
+          ) : (
+            <>
+              <p className="text-text-muted text-sm">No recent copy activity.</p>
+              <Link href="/activity" className="mt-2 inline-flex text-ton-400 text-xs font-medium">
+                View all activity →
+              </Link>
+            </>
+          )}
         </CardBody>
       </Card>
     </div>

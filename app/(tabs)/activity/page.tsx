@@ -1,84 +1,143 @@
+"use client";
+
 import { Card } from "@/components/ui/Card";
 import { Badge, DecisionBadge } from "@/components/ui/Badge";
-import { formatAmount, formatRelativeTime } from "@/lib/format";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { formatAmount, formatRelativeTime, formatUsd } from "@/lib/format";
+import { useActivity } from "@/hooks/useActivity";
 
-/** Placeholder events — replaced with /api/activity in Phase 2 */
-const SAMPLE_EVENTS = [
-  {
-    id:          "1",
-    leader:      "Alpha Whale 🐋",
-    soldToken:   "TON",
-    boughtToken: "USDT",
-    soldAmount:  120,
-    timestamp:   new Date(Date.now() - 2 * 3_600_000),
-    decision:    "accepted"  as const,
-    status:      "pending"   as const,
-  },
-  {
-    id:          "2",
-    leader:      "DeFi Degen 🎰",
-    soldToken:   "TON",
-    boughtToken: "DOGS",
-    soldAmount:  50,
-    timestamp:   new Date(Date.now() - 1 * 3_600_000),
-    decision:    "rejected"  as const,
-    status:      null,
-  },
-  {
-    id:          "3",
-    leader:      "Steady Eddie 📈",
-    soldToken:   "USDT",
-    boughtToken: "TON",
-    soldAmount:  200,
-    timestamp:   new Date(Date.now() - 12 * 3_600_000),
-    decision:    "manual_review" as const,
-    status:      "pending"    as const,
-  },
-];
+function ExecutionStatusBadge({ status }: { status: string }) {
+  const map: Record<string, { variant: "success" | "warning" | "danger" | "muted" | "info"; label: string }> = {
+    pending:   { variant: "warning", label: "Pending" },
+    quoted:    { variant: "info",    label: "Quoted"  },
+    ready:     { variant: "info",    label: "Ready"   },
+    submitted: { variant: "info",    label: "Sent"    },
+    confirmed: { variant: "success", label: "Confirmed" },
+    failed:    { variant: "danger",  label: "Failed"  },
+    skipped:   { variant: "muted",   label: "Skipped" },
+  };
+  const { variant, label } = map[status] ?? { variant: "muted" as const, label: status };
+  return <Badge variant={variant}>{label}</Badge>;
+}
 
 export default function ActivityPage() {
-  return (
-    <div className="px-4 pt-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-text-primary">Activity</h1>
-        <Badge variant="muted">{SAMPLE_EVENTS.length} events</Badge>
-      </div>
+  const { data: events, isLoading, isError } = useActivity({ limit: 50 });
 
-      {SAMPLE_EVENTS.length === 0 ? (
+  // ── Loading ──────────────────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className="px-4 pt-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold text-text-primary">Activity</h1>
+          <Skeleton className="w-16 h-5 rounded-full" />
+        </div>
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i} elevated>
+            <Skeleton className="w-24 h-3 mb-2" />
+            <Skeleton className="w-full h-5" />
+            <Skeleton className="w-20 h-3 mt-2" />
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  // ── Error ────────────────────────────────────────────────────────────────────
+  if (isError) {
+    return (
+      <div className="px-4 pt-6 flex flex-col items-center justify-center py-20 text-center">
+        <p className="text-4xl mb-3">⚠️</p>
+        <p className="text-text-secondary font-medium">Failed to load activity</p>
+        <p className="text-text-muted text-sm mt-1">Check database connection.</p>
+      </div>
+    );
+  }
+
+  // ── Empty ────────────────────────────────────────────────────────────────────
+  if (!events || events.length === 0) {
+    return (
+      <div className="px-4 pt-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold text-text-primary">Activity</h1>
+          <Badge variant="muted">0 events</Badge>
+        </div>
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <p className="text-4xl mb-3">⚡️</p>
           <p className="text-text-secondary font-medium">No activity yet</p>
           <p className="text-text-muted text-sm mt-1">
-            Follow leaders and copy trades to see events here.
+            Follow leaders or use the demo panel to emit trades.
           </p>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {SAMPLE_EVENTS.map((event) => (
-            <Card key={event.id} elevated>
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-text-muted">{event.leader}</p>
-                  <p className="text-sm font-semibold text-text-primary mt-0.5">
-                    {formatAmount(event.soldAmount)} {event.soldToken}{" "}
-                    <span className="text-text-muted font-normal">→</span>{" "}
-                    {event.boughtToken}
+      </div>
+    );
+  }
+
+  // ── Data ─────────────────────────────────────────────────────────────────────
+  return (
+    <div className="px-4 pt-6 space-y-4 pb-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-text-primary">Activity</h1>
+        <Badge variant="muted">{events.length} events</Badge>
+      </div>
+
+      <div className="space-y-3">
+        {events.map((event) => (
+          <Card key={event.id} elevated>
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                {/* Leader name */}
+                <p className="text-xs text-text-muted">{event.leader.nickname}</p>
+
+                {/* Trade direction */}
+                <p className="text-sm font-semibold text-text-primary mt-0.5">
+                  {formatAmount(event.soldAmountDecimal)}{" "}
+                  <span className="text-text-secondary">{event.soldToken}</span>{" "}
+                  <span className="text-text-muted font-normal">→</span>{" "}
+                  <span className="text-text-secondary">{event.boughtToken}</span>
+                </p>
+
+                {/* USD estimate */}
+                {event.usdEstimate != null && (
+                  <p className="text-xs text-text-muted mt-0.5">
+                    ≈ {formatUsd(event.usdEstimate)}
                   </p>
-                  <p className="text-xs text-text-muted mt-1">
-                    {formatRelativeTime(event.timestamp)}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-1.5 shrink-0">
-                  <DecisionBadge decision={event.decision} />
-                  {event.status && (
-                    <Badge variant="muted">{event.status}</Badge>
+                )}
+
+                {/* Timestamp + source */}
+                <p className="text-xs text-text-muted mt-1">
+                  {formatRelativeTime(event.timestamp)}{" "}
+                  {event.sourceProvider === "mock" && (
+                    <span className="text-ton-400/60">• demo</span>
                   )}
-                </div>
+                </p>
+
+                {/* Risk flags */}
+                {event.decision && event.decision.riskFlags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {event.decision.riskFlags.map((flag) => (
+                      <Badge key={flag} variant="warning" className="text-[10px] px-1.5 py-0">
+                        {flag.replace(/_/g, " ")}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
-            </Card>
-          ))}
-        </div>
-      )}
+
+              {/* Right column: decision + execution status */}
+              <div className="flex flex-col items-end gap-1.5 shrink-0">
+                {event.decision ? (
+                  <DecisionBadge decision={event.decision.outcome} />
+                ) : (
+                  <Badge variant="muted">No decision</Badge>
+                )}
+                {event.execution && (
+                  <ExecutionStatusBadge status={event.execution.status} />
+                )}
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
