@@ -1,26 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge, RiskBadge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { Button } from "@/components/ui/Button";
 import { formatPercent } from "@/lib/format";
-import { useLeaders, useFollowLeader } from "@/hooks/useLeaders";
-import { useState } from "react";
+import { useLeaders } from "@/hooks/useLeaders";
 
 export default function LeadersPage() {
   const { data: leaders, isLoading, isError } = useLeaders();
-  const followMutation = useFollowLeader();
-  const [followingId, setFollowingId] = useState<string | null>(null);
-
-  const handleFollow = async (leaderId: string) => {
-    setFollowingId(leaderId);
-    try {
-      await followMutation.mutateAsync({ leaderWalletId: leaderId });
-    } finally {
-      setFollowingId(null);
-    }
-  };
 
   // ── Loading state ────────────────────────────────────────────────────────────
   if (isLoading) {
@@ -72,56 +60,51 @@ export default function LeadersPage() {
 
       <div className="space-y-3">
         {leaders.map((leader) => (
-          <Card key={leader.id} className="space-y-3">
-            <CardHeader className="mb-0 flex flex-row items-start justify-between">
-              <div>
-                <CardTitle>{leader.nickname}</CardTitle>
-                <div className="flex flex-wrap gap-1 mt-1.5">
-                  {leader.tags.map((tag) => (
-                    <Badge key={tag} variant="muted">{tag}</Badge>
-                  ))}
-                </div>
-              </div>
-              <RiskBadge score={leader.riskScore} />
-            </CardHeader>
-
-            <CardBody>
-              <div className="grid grid-cols-2 gap-2 text-xs">
+          <Link key={leader.id} href={`/leaders/${leader.id}`} className="block">
+            <Card className="space-y-3 active:scale-[0.99] transition-transform">
+              <CardHeader className="mb-0 flex flex-row items-start justify-between">
                 <div>
-                  <span className="text-text-muted">Win rate</span>
-                  <p className="text-text-primary font-semibold mt-0.5">
-                    {formatPercent(leader.winRateApprox)}
-                  </p>
+                  <CardTitle>{leader.nickname}</CardTitle>
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {leader.tags.map((tag) => (
+                      <Badge key={tag} variant="muted">{tag}</Badge>
+                    ))}
+                  </div>
                 </div>
-                <div>
-                  <span className="text-text-muted">Activity</span>
-                  <p className="text-text-primary font-semibold mt-0.5">
-                    {formatPercent(leader.activityScore)}
-                  </p>
-                </div>
-              </div>
-            </CardBody>
+                <RiskBadge score={leader.riskScore} />
+              </CardHeader>
 
-            <div className="flex items-center justify-between pt-1">
-              {leader.isFollowing ? (
-                <Badge variant="success">Following</Badge>
-              ) : (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  disabled={followingId === leader.id || followMutation.isPending}
-                  onClick={() => handleFollow(leader.id)}
-                >
-                  {followingId === leader.id ? "Following…" : "Follow"}
-                </Button>
-              )}
-              {leader.notes && (
-                <span className="text-text-muted text-xs truncate max-w-[140px]">
-                  {leader.notes}
-                </span>
-              )}
-            </div>
-          </Card>
+              <CardBody>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-text-muted">Win rate</span>
+                    <p className="text-text-primary font-semibold mt-0.5">
+                      {formatPercent(leader.winRateApprox)}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-text-muted">Activity</span>
+                    <p className="text-text-primary font-semibold mt-0.5">
+                      {formatPercent(leader.activityScore)}
+                    </p>
+                  </div>
+                </div>
+              </CardBody>
+
+              <div className="flex items-center justify-between pt-1">
+                {leader.isFollowing ? (
+                  <Badge variant="success">Following ✓</Badge>
+                ) : (
+                  <Badge variant="muted">Tap to follow →</Badge>
+                )}
+                {leader.notes && (
+                  <span className="text-text-muted text-xs truncate max-w-[140px]">
+                    {leader.notes}
+                  </span>
+                )}
+              </div>
+            </Card>
+          </Link>
         ))}
       </div>
     </div>

@@ -54,3 +54,6 @@ CLAUDE.md
 *.log
 *.tgz
 .vercel
+.playwright-mcp/
+screenshot-*.png
+test-results/
