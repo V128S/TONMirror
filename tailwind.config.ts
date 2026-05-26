@@ -10,7 +10,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ── Phosphor / terminal palette ──────────────────────────────────
+        // ── Glass / semantic palette (CSS-var driven) ──────────────────────
+        // Reference CSS variables defined in app/globals.css so light/dark
+        // (and any future themes) can swap them without rebuild.
+        bg:     "rgb(var(--bg) / <alpha-value>)",
+        fg:     "rgb(var(--text1) / <alpha-value>)",
+        muted:  "rgb(var(--text2) / <alpha-value>)",
+        subtle: "rgb(var(--text3) / <alpha-value>)",
+        faint:  "rgb(var(--text4) / <alpha-value>)",
+        hair:   "rgb(var(--hair) / <alpha-value>)",
+
+        // ── Terminal / phosphor palette (static) ──────────────────────────
+        // These are kept so all existing terminal components still compile.
         phos: {
           DEFAULT: "#00ff66",
           hi:      "#c8ffd8",
@@ -18,22 +29,18 @@ const config: Config = {
           dim:     "#0a3d1f",
           mid:     "#4a8a5e",
         },
-        bg: {
-          DEFAULT: "#000000",
-          panel:   "#03070a",
-          el:      "#06120c",
-        },
-        // alias `border-phos`, `border-phos-dim`
         "phos-border":     "rgba(0,255,102,0.35)",
         "phos-border-dim": "rgba(0,255,102,0.15)",
 
-        // Status colors
-        warn:    "#ffd500",
-        danger:  "#ff3050",
-        success: "#00ffaa",
+        warn:    "#b58200",
+        danger:  "#a03040",
+        success: "rgb(var(--text1) / <alpha-value>)",
 
-        // ── Legacy aliases — keep so existing components still compile ──
-        // (you can remove these once every consumer is migrated)
+        // Glass aliases used by Badge/Button/Card components.
+        // In terminal theme these resolve to phos equivalents via the CSS var fallback.
+        "glass-success": { DEFAULT: "#00ffaa" },
+
+        // ── Legacy aliases ─────────────────────────────────────────────────
         ton: {
           50:  "#e6fff0",
           100: "#b3ffd9",
@@ -60,23 +67,24 @@ const config: Config = {
         },
       },
       fontFamily: {
-        mono: ["var(--font-jet)", "ui-monospace", "monospace"],
+        // Glass: system font stack
+        sans: ["-apple-system","BlinkMacSystemFont","SF Pro Text","SF Pro Display","Inter","system-ui","sans-serif"],
+        // Shared mono — JetBrains Mono for numeric data in glass, terminal font for terminal
+        mono: ["var(--font-jet)","SF Mono","ui-monospace","monospace"],
+        // Terminal-only fonts (kept for backward compat)
         disp: ["var(--font-maj)", "var(--font-jet)", "monospace"],
         stm:  ["var(--font-sht)", "var(--font-jet)", "monospace"],
-        sans: ["var(--font-jet)", "ui-monospace", "monospace"],
-      },
-      fontFeatureSettings: {
-        mono: '"tnum","zero","ss02"',
       },
       borderRadius: {
+        // Glass defaults — smooth rounded corners
+        DEFAULT: "14px",
         none: "0",
-        sm:   "2px",
-        DEFAULT: "0",   // square corners by default — terminal aesthetic
-        md:   "0",
-        lg:   "0",
-        xl:   "0",
-        "2xl":"0",
-        "3xl":"0",
+        sm:   "10px",
+        md:   "14px",
+        lg:   "18px",
+        xl:   "22px",
+        "2xl":"26px",
+        "3xl":"32px",
         full: "9999px",
       },
       screens: {
@@ -84,14 +92,25 @@ const config: Config = {
         sm: "430px",
       },
       boxShadow: {
-        glow:     "0 0 6px rgba(0,255,102,0.6), 0 0 16px rgba(0,255,102,0.3)",
-        "glow-sm":"0 0 4px rgba(0,255,102,0.5)",
-        "glow-lg":"0 0 12px rgba(0,255,102,0.7), 0 0 32px rgba(0,255,102,0.35)",
+        // Glass surface shadow
+        glass:
+          "0 1px 0 0 rgb(var(--glass-inner, 255 255 255) / 0.9) inset, " +
+          "0 0 0 0.5px rgb(0 0 0 / 0.05), " +
+          "0 8px 28px -8px rgb(20 20 40 / 0.10), " +
+          "0 2px 6px -2px rgb(20 20 40 / 0.05)",
+        // CTA button shadow (same as glass port)
+        cta:
+          "0 8px 22px -6px rgb(0 0 0 / 0.30), " +
+          "0 1px 0 rgb(255 255 255 / 0.15) inset",
+        // Terminal glow shadows (kept for backward compat)
+        glow:      "0 0 6px rgba(0,255,102,0.6), 0 0 16px rgba(0,255,102,0.3)",
+        "glow-sm": "0 0 4px rgba(0,255,102,0.5)",
+        "glow-lg": "0 0 12px rgba(0,255,102,0.7), 0 0 32px rgba(0,255,102,0.35)",
         "panel-inset": "inset 0 0 24px rgba(0,255,102,0.06)",
       },
       letterSpacing: {
-        wider2: "0.18em",
-        widest2:"0.25em",
+        wider2:  "0.18em",
+        widest2: "0.25em",
       },
     },
   },

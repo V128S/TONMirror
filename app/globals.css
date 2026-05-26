@@ -2,7 +2,61 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Reset & base ─────────────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════════════════
+   GLASS THEME — CSS variables (default: light glass)
+   html.dark            → glass-dark mode
+   html.theme-terminal  → legacy terminal mode (forces dark overrides)
+   ════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* RGB triples so Tailwind's alpha-value syntax works. */
+  --bg:           240 238 233;
+  --text1:        10 10 12;
+  --text2:        94 94 100;
+  --text3:        154 154 162;
+  --text4:        200 200 205;
+  --hair:         0 0 0;
+  --glass-inner:  255 255 255;
+
+  /* Premixed alpha surfaces. */
+  --glass:        rgba(255,255,255,0.55);
+  --glass-hi:     rgba(255,255,255,0.72);
+  --glass-edge:   rgba(255,255,255,0.85);
+  --glass-fill:   rgba(255,255,255,0.60);
+  --chip:         rgba(0,0,0,0.04);
+
+  --orb1:         rgba(180,200,255,0.55);
+  --orb2:         rgba(255,210,220,0.50);
+  --orb3:         rgba(255,240,200,0.55);
+  --orb4:         rgba(210,235,225,0.50);
+  --orb5:         rgba(225,215,255,0.45);
+}
+
+html.dark:not(.theme-terminal) {
+  --bg:           12 12 16;
+  --text1:        245 245 247;
+  --text2:        157 157 166;
+  --text3:        106 106 114;
+  --text4:        58 58 66;
+  --hair:         255 255 255;
+  --glass-inner:  255 255 255;
+
+  --glass:        rgba(255,255,255,0.06);
+  --glass-hi:     rgba(255,255,255,0.10);
+  --glass-edge:   rgba(255,255,255,0.14);
+  --glass-fill:   rgba(255,255,255,0.04);
+  --chip:         rgba(255,255,255,0.06);
+
+  --orb1:         rgba(80,120,220,0.45);
+  --orb2:         rgba(220,80,120,0.40);
+  --orb3:         rgba(220,180,80,0.40);
+  --orb4:         rgba(80,200,160,0.38);
+  --orb5:         rgba(160,100,220,0.40);
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   Base
+   ════════════════════════════════════════════════════════════════════════ */
 @layer base {
   *, *::before, *::after { box-sizing: border-box; }
 
@@ -11,27 +65,61 @@
     text-size-adjust: 100%;
   }
 
+  /* Glass theme body */
   body {
-    @apply bg-bg text-phos-hi;
-    font-family: var(--font-jet), ui-monospace, monospace;
-    font-feature-settings: "tnum","zero","ss02";
+    background-color: rgb(var(--bg));
+    color: rgb(var(--text1));
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif;
+    font-feature-settings: "tnum","ss01";
     padding-bottom: env(safe-area-inset-bottom, 0);
     overscroll-behavior: none;
     -webkit-font-smoothing: antialiased;
+    transition: background-color 0.25s ease;
+  }
+
+  /* Terminal theme body override */
+  html.theme-terminal body {
+    font-family: var(--font-jet), ui-monospace, monospace;
+    font-feature-settings: "tnum","zero","ss02";
+    background-color: #000000;
+    color: #c8ffd8;
   }
 
   * { -webkit-tap-highlight-color: transparent; }
 
-  ::selection { background: #00ff66; color: #000; }
+  /* Glass selection */
+  ::selection { background: rgb(var(--text1) / 0.85); color: rgb(var(--bg)); }
+
+  /* Terminal selection override */
+  html.theme-terminal ::selection { background: #00ff66; color: #000; }
 }
 
-/* ── Utilities ────────────────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════════════════
+   Utilities — Glass
+   ════════════════════════════════════════════════════════════════════════ */
 @layer utilities {
   .safe-area-pb { padding-bottom: env(safe-area-inset-bottom, 0); }
-
-  .scroll-hide { scrollbar-width: none; -ms-overflow-style: none; }
+  .scroll-hide  { scrollbar-width: none; -ms-overflow-style: none; }
   .scroll-hide::-webkit-scrollbar { display: none; }
+  .gl-tnum { font-variant-numeric: tabular-nums; }
 
+  /* Glass surface — exposed here for ad-hoc use. */
+  .glass {
+    background: var(--glass);
+    border: 0.5px solid var(--glass-edge);
+    box-shadow: theme('boxShadow.glass');
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+  }
+  .glass-hi {
+    background: var(--glass-hi);
+    border: 0.5px solid var(--glass-edge);
+    box-shadow: theme('boxShadow.glass');
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+  }
+
+  /* ── Terminal utilities (kept intact) ─────────────────────────────── */
   .tm-mono { font-family: var(--font-jet), ui-monospace, monospace;
              font-feature-settings: "tnum","zero","ss02"; }
   .tm-disp { font-family: var(--font-maj), var(--font-jet), monospace;
@@ -42,11 +130,10 @@
   .tm-glow-soft { text-shadow: 0 0 6px rgba(0,255,102,0.25); }
   .tm-hot       { color: #c8ffd8; text-shadow: 0 0 6px #00ff66, 0 0 16px #00ff66; }
 
-  .tm-blink     { animation: tm-blink 1.1s steps(2,end) infinite; }
-  .tm-pulse     { animation: tm-pulse 1.6s ease-in-out infinite; }
-  .tm-flicker   { animation: tm-flicker 6s infinite; }
+  .tm-blink   { animation: tm-blink 1.1s steps(2,end) infinite; }
+  .tm-pulse   { animation: tm-pulse 1.6s ease-in-out infinite; }
+  .tm-flicker { animation: tm-flicker 6s infinite; }
 
-  /* dashed terminal divider */
   .tm-divider-dash {
     background-image: linear-gradient(90deg, rgba(0,255,102,0.4) 50%, transparent 50%);
     background-size: 6px 1px;
@@ -56,7 +143,48 @@
   }
 }
 
-/* ── Keyframes ────────────────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════════════════
+   Keyframes — Glass
+   ════════════════════════════════════════════════════════════════════════ */
+@keyframes gl-drift-1 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33%      { transform: translate3d(38px, -28px, 0) scale(1.08); }
+  66%      { transform: translate3d(-22px, 34px, 0) scale(0.94); }
+}
+@keyframes gl-drift-2 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33%      { transform: translate3d(-44px, 22px, 0) scale(0.92); }
+  66%      { transform: translate3d(28px, -36px, 0) scale(1.10); }
+}
+@keyframes gl-drift-3 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(26px, 30px, 0) scale(1.06); }
+}
+@keyframes gl-drift-4 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(-34px, -24px, 0) scale(1.04); }
+}
+@keyframes gl-drift-5 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  40%      { transform: translate3d(20px, -32px, 0) scale(0.96); }
+  80%      { transform: translate3d(-30px, 18px, 0) scale(1.08); }
+}
+@keyframes gl-marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes gl-pulse {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1; }
+}
+@keyframes gl-flicker {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 0.55; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   Keyframes — Terminal (kept intact)
+   ════════════════════════════════════════════════════════════════════════ */
 @keyframes tm-blink   { 0%,49% {opacity:1} 50%,100% {opacity:0} }
 @keyframes tm-flicker { 0%,100%{opacity:1} 7%{opacity:.85} 9%{opacity:1} 41%{opacity:1} 43%{opacity:.78} 45%{opacity:1} }
 @keyframes tm-scan    { from { transform: translateY(-100%) } to { transform: translateY(100%) } }
@@ -64,5 +192,8 @@
 @keyframes tm-pulse   { 0%,100%{opacity:.55} 50%{opacity:1} }
 @keyframes tm-spin    { to { transform: rotate(360deg) } }
 
-/* ── TON Connect modal fix for dark theme ────────────────────────────── */
-[data-tc-wallets-modal-container="true"] { --tg-color-scheme: dark; }
+/* ════════════════════════════════════════════════════════════════════════
+   TON Connect modal — match theme
+   ════════════════════════════════════════════════════════════════════════ */
+html:not(.dark) [data-tc-wallets-modal-container="true"] { --tg-color-scheme: light; }
+html.dark [data-tc-wallets-modal-container="true"]       { --tg-color-scheme: dark; }
