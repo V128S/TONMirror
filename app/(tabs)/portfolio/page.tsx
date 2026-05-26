@@ -25,9 +25,11 @@ import { CornerBox }   from "@/components/terminal/CornerBox";
 import { Sparkline }   from "@/components/fx/Sparkline";
 import { RiskMeter }   from "@/components/fx/RiskMeter";
 
+import { useTonAddress } from "@tonconnect/ui-react";
 import { formatUsd } from "@/lib/format";
 import { useStrategies, usePauseStrategy, useDeleteStrategy } from "@/hooks/useStrategies";
 import { useActivity } from "@/hooks/useActivity";
+import { useTonBalance } from "@/hooks/useTonBalance";
 
 type Strategy = NonNullable<ReturnType<typeof useStrategies>["data"]>[number];
 
@@ -124,6 +126,9 @@ function GlassStrategyCard({ s }: { s: Strategy }) {
 /* ── Page ────────────────────────────────────────────────────────────── */
 export default function PortfolioPage() {
   const { theme } = useTheme();
+  const address = useTonAddress();
+  const isConnected = !!address;
+  const { tonFormatted, usdFormatted, source, isLoading: balanceLoading } = useTonBalance();
   const { data: strategies, isLoading: sLoad } = useStrategies();
   const { data: activity, isLoading: aLoad } = useActivity({ limit: 100 });
 
@@ -236,6 +241,52 @@ export default function PortfolioPage() {
     <div>
       <PageTitle overline={`${strategies?.length ?? 0} mirrors`} title="Vault" />
       <div className="px-4 space-y-3.5">
+        {/* Wallet Balance */}
+        {!isConnected ? (
+          <Glass hi className="p-4 rounded-2xl">
+            <p className="text-sm" style={{ color: "rgb(var(--text3))" }}>
+              Connect your wallet to see balance
+            </p>
+          </Glass>
+        ) : (
+          <Glass hi className="p-4 rounded-2xl">
+            <div
+              className="text-xs uppercase tracking-wider mb-1"
+              style={{ color: "rgb(var(--text3))" }}
+            >
+              Wallet Balance
+            </div>
+            {balanceLoading ? (
+              <GlassSkeleton className="h-8 w-40" />
+            ) : (
+              <>
+                <div
+                  className="text-2xl font-semibold"
+                  style={{ color: "rgb(var(--text1))" }}
+                >
+                  {tonFormatted ?? "—"}
+                </div>
+                {usdFormatted && (
+                  <div
+                    className="text-sm mt-0.5"
+                    style={{ color: "rgb(var(--text2))" }}
+                  >
+                    {usdFormatted}
+                  </div>
+                )}
+                {source === "approx" && (
+                  <div
+                    className="text-xs mt-1"
+                    style={{ color: "rgb(var(--text3))" }}
+                  >
+                    * Приблизительно из скопированных сделок
+                  </div>
+                )}
+              </>
+            )}
+          </Glass>
+        )}
+
         {/* Hero PnL */}
         <Glass hi radius={26} padding={20}>
           <div className="flex justify-between items-start">
