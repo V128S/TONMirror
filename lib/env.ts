@@ -32,9 +32,15 @@ export function getServerEnv() {
     DATABASE_URL:       z.string().min(1, "DATABASE_URL is required"),
     TON_WEBHOOK_SECRET: z.string().min(1).default("dev_secret"),
     TON_API_KEY:        z.string().optional(),
+    CRON_SECRET:        z.string().min(1).default("dev_cron_secret"),
+    WHALE_MIN_SCORE:    z.coerce.number().min(0).max(1).default(0.3),
+    WHALE_MAX_LEADERS:  z.coerce.number().int().positive().default(50),
   }).parse({
     DATABASE_URL:       process.env.DATABASE_URL,
     TON_WEBHOOK_SECRET: process.env.TON_WEBHOOK_SECRET,
     TON_API_KEY:        process.env.TON_API_KEY,
+    CRON_SECRET:        process.env.CRON_SECRET,
+    WHALE_MIN_SCORE:    process.env.WHALE_MIN_SCORE,
+    WHALE_MAX_LEADERS:  process.env.WHALE_MAX_LEADERS,
   });
 }
