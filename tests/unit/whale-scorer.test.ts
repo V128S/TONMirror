@@ -38,7 +38,7 @@ describe("scoreWallet", () => {
     );
     const result = scoreWallet("UQBtest", swaps);
     expect(result.tags).toContain("alpha");
-    expect(result.score).toBeGreaterThan(0.3);
+    expect(result.score).toBeGreaterThanOrEqual(0.65);
   });
 
   it("assigns balanced tag for mid-range score", () => {

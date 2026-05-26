@@ -1,13 +1,30 @@
 import type { SwapEvent, WhaleScore } from "./types";
 
-const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1_000;
+/** Composite score weights */
+const WEIGHT_VOLUME   = 0.4;
+const WEIGHT_WIN_RATE = 0.4;
+const WEIGHT_ACTIVITY = 0.2;
+/** Tag score thresholds */
+const ALPHA_THRESHOLD    = 0.65;
+const BALANCED_THRESHOLD = 0.4;
+/** Profitability margin: swap is profitable if usdOut > usdIn * this */
+const PROFIT_MARGIN    = 1.01;
+/** High-volume cutoff in USD */
+const HIGH_VOLUME_USD  = 100_000;
+/** Window in days */
+const WINDOW_DAYS = 30;
+
+const THIRTY_DAYS_MS = WINDOW_DAYS * 24 * 60 * 60 * 1_000;
 /** Max trades/day used for normalisation (1.0 at this value) */
 const MAX_ACTIVITY_TRADES_PER_DAY = 10;
 /** Reference volume for normalisation — wallets above this get vol_score = 1 */
 const REFERENCE_VOLUME_USD = 500_000;
 
-export function scoreWallet(address: string, swaps: SwapEvent[]): WhaleScore {
-  const now = Date.now();
+export function scoreWallet(
+  address: string,
+  swaps: SwapEvent[],
+  now: number = Date.now(),
+): WhaleScore {
   const recent = swaps.filter(s => now - s.timestamp.getTime() <= THIRTY_DAYS_MS);
 
   if (recent.length === 0) {
@@ -29,25 +46,25 @@ export function scoreWallet(address: string, swaps: SwapEvent[]): WhaleScore {
   const logRef        = Math.log10(REFERENCE_VOLUME_USD);
   const volumeScore   = Math.min(1, logVol / logRef);
 
-  // Win rate: profitable = usdOut > usdIn * 1.01
+  // Win rate: profitable = usdOut > usdIn * PROFIT_MARGIN
   const withUsdOut    = recent.filter(e => e.usdOut > 0);
-  const profitable    = withUsdOut.filter(e => e.usdOut > e.usdIn * 1.01).length;
-  const winRate       = withUsdOut.length > 0 ? profitable / withUsdOut.length : 0.5;
+  const profitable    = withUsdOut.filter(e => e.usdOut > e.usdIn * PROFIT_MARGIN).length;
+  const winRate       = withUsdOut.length > 0 ? profitable / withUsdOut.length : 0;
 
-  // Activity score: trades per day over 30d window, normalised
-  const tradesPerDay  = recent.length / 30;
+  // Activity score: trades per day over WINDOW_DAYS window, normalised
+  const tradesPerDay  = recent.length / WINDOW_DAYS;
   const activityScore = Math.min(1, tradesPerDay / MAX_ACTIVITY_TRADES_PER_DAY);
 
   // Composite
-  const score = volumeScore * 0.4 + winRate * 0.4 + activityScore * 0.2;
+  const score = volumeScore * WEIGHT_VOLUME + winRate * WEIGHT_WIN_RATE + activityScore * WEIGHT_ACTIVITY;
 
   // Tags
   const tags: string[] = ["auto"];
-  if (score >= 0.65)      tags.push("alpha");
-  else if (score >= 0.4)  tags.push("balanced");
-  else                    tags.push("active");
+  if (score >= ALPHA_THRESHOLD)      tags.push("alpha");
+  else if (score >= BALANCED_THRESHOLD)  tags.push("balanced");
+  else                               tags.push("active");
 
-  if (volumeUsd30d >= 100_000) tags.push("high-volume");
+  if (volumeUsd30d >= HIGH_VOLUME_USD) tags.push("high-volume");
 
   return {
     address,
