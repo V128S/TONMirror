@@ -44,18 +44,40 @@ export function SpotlightTour({ onComplete }: SpotlightTourProps) {
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  // Measure target element whenever step changes
+  // Measure target element whenever step changes.
+  // Retries via rAF if element not yet in DOM (e.g. tab bar still rendering).
   useEffect(() => {
+    if (!step) { setRect(null); return; }
+    const selector = step.targetSelector;
+    let rafId: number;
+
     const measure = () => {
-      if (!step) { setRect(null); return; }
-      const el = document.querySelector(step.targetSelector);
-      if (!el) { setRect(null); return; }
+      const el = document.querySelector(selector);
+      if (!el) {
+        // Element not mounted yet — retry next frame
+        rafId = requestAnimationFrame(measure);
+        return;
+      }
       const r = el.getBoundingClientRect();
       setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
     };
+
+    const remeasure = () => {
+      const el = document.querySelector(selector);
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+    };
+
     measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    window.addEventListener("resize", remeasure, { passive: true });
+    window.addEventListener("scroll", remeasure, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", remeasure);
+      window.removeEventListener("scroll", remeasure);
+    };
   }, [step?.targetSelector]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!step) return null;
@@ -118,7 +140,6 @@ export function SpotlightTour({ onComplete }: SpotlightTourProps) {
           boxShadow: "0 8px 32px rgba(0,0,0,0.24)",
           pointerEvents: "none",
         }}
-        onClick={(e) => e.stopPropagation()}
       >
         <div style={{ fontSize: 14, fontWeight: 700, color: "#0a0a0c", marginBottom: 6 }}>
           {step.title}

@@ -27,6 +27,7 @@ import { isDemoMode } from "@/lib/env";
 import { useEmitDemoTrade, useResetDemoData } from "@/hooks/useActivity";
 import { useRunWhaleScanner, type ScanResult } from "@/hooks/useWhaleScanner";
 import { formatUsd } from "@/lib/format";
+import { ONBOARDED_KEY } from "@/components/onboarding/OnboardingManager";
 
 type FeedbackState = { type: "success" | "error"; message: string } | null;
 
@@ -447,7 +448,7 @@ export default function SettingsPage() {
                 size="sm"
                 variant="secondary"
                 onClick={() => {
-                  localStorage.removeItem("tonmirror-onboarded");
+                  localStorage.removeItem(ONBOARDED_KEY);
                   window.location.reload();
                 }}
               >

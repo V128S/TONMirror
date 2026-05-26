@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/theme/ThemeProvider";
 
@@ -16,6 +16,7 @@ interface BottomSheetProps {
 /**
  * Slide-up panel. Dual-theme: glass surface (default) or terminal border.
  * Supports drag-to-dismiss (touch) and backdrop click.
+ * Maintains exit animation by keeping the DOM alive until transition ends.
  */
 export function BottomSheet({
   isOpen,
@@ -27,13 +28,35 @@ export function BottomSheet({
   const { theme } = useTheme();
   const isTerminal = theme === "terminal";
 
+  // `visible` tracks whether the DOM is still mounted (delayed removal for exit animation)
+  const [visible, setVisible] = useState(isOpen);
+
   const startY   = useRef<number | null>(null);
   const deltaY   = useRef<number>(0);
   const sheetRef = useRef<HTMLDivElement>(null);
 
+  // Mount immediately when opening; delay unmount until exit animation finishes
+  useEffect(() => {
+    if (isOpen) {
+      setVisible(true);
+    }
+  }, [isOpen]);
+
+  // Body scroll lock — save+restore previous value to compose with other locks
+  useEffect(() => {
+    if (!visible) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [visible]);
+
+  const handleTransitionEnd = () => {
+    if (!isOpen) setVisible(false);
+  };
+
   const handleTouchStart = (e: React.TouchEvent) => {
-    startY.current = e.touches[0].clientY;
-    deltaY.current = 0;
+    startY.current  = e.touches[0].clientY;
+    deltaY.current  = 0;
   };
   const handleTouchMove = (e: React.TouchEvent) => {
     if (startY.current === null) return;
@@ -53,32 +76,26 @@ export function BottomSheet({
     deltaY.current = 0;
   };
 
-  useEffect(() => {
-    if (isOpen) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "";
-    return () => { document.body.style.overflow = ""; };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
+  if (!visible) return null;
 
   const sheetStyle: React.CSSProperties = isTerminal
     ? {
-        background: "#000",
-        borderTop:   "1px solid rgba(0,255,102,0.35)",
-        borderLeft:  "1px solid rgba(0,255,102,0.20)",
-        borderRight: "1px solid rgba(0,255,102,0.20)",
+        background:   "#000",
+        borderTop:    "1px solid rgba(0,255,102,0.35)",
+        borderLeft:   "1px solid rgba(0,255,102,0.20)",
+        borderRight:  "1px solid rgba(0,255,102,0.20)",
         borderRadius: 0,
-        maxHeight: `${heightPercent}vh`,
+        maxHeight:    `${heightPercent}vh`,
       }
     : {
-        background: "var(--glass-hi)",
-        WebkitBackdropFilter: "blur(40px) saturate(180%)",
-        backdropFilter: "blur(40px) saturate(180%)",
-        borderTop:   "0.5px solid var(--glass-edge)",
-        borderLeft:  "0.5px solid var(--glass-edge)",
-        borderRight: "0.5px solid var(--glass-edge)",
+        background:          "var(--glass-hi)",
+        WebkitBackdropFilter:"blur(40px) saturate(180%)",
+        backdropFilter:       "blur(40px) saturate(180%)",
+        borderTop:    "0.5px solid var(--glass-edge)",
+        borderLeft:   "0.5px solid var(--glass-edge)",
+        borderRight:  "0.5px solid var(--glass-edge)",
         borderRadius: "24px 24px 0 0",
-        maxHeight: `${heightPercent}vh`,
+        maxHeight:    `${heightPercent}vh`,
       };
 
   return (
@@ -86,6 +103,10 @@ export function BottomSheet({
       {/* Backdrop */}
       <div
         className="fixed inset-0 z-[199] bg-black/40"
+        style={{
+          opacity:    isOpen ? 1 : 0,
+          transition: "opacity 300ms ease",
+        }}
         onClick={onClose}
         aria-hidden
       />
@@ -95,19 +116,22 @@ export function BottomSheet({
         className={cn("fixed bottom-0 left-0 right-0 z-[200] overflow-y-auto", className)}
         style={{
           ...sheetStyle,
+          transform:  isOpen ? "translateY(0)" : "translateY(100%)",
           transition: "transform 300ms cubic-bezier(0.32, 0.72, 0, 1)",
           willChange: "transform",
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onTransitionEnd={handleTransitionEnd}
       >
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1">
           <div
             className="rounded-full"
             style={{
-              width: 36, height: 4,
+              width:      36,
+              height:     4,
               background: isTerminal ? "rgba(0,255,102,0.3)" : "rgba(0,0,0,0.15)",
             }}
           />

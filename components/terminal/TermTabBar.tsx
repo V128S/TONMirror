@@ -21,6 +21,7 @@ export function TermTabBar() {
             key={t.href}
             href={t.href}
             data-tour={t.tourId}
+            aria-current={active ? "page" : undefined}
             className={`flex flex-col items-center gap-0.5 w-14 ${
               active ? "text-phos-hi" : "text-phos-mid"
             }`}

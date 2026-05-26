@@ -38,6 +38,9 @@ type GlassFilter = "All" | "Accepted" | "Review" | "Rejected";
 const GLASS_FILTER_MAP: Record<GlassFilter, string | null> = {
   All: null, Accepted: "accepted", Review: "manual_review", Rejected: "rejected",
 };
+const TERM_FILTER_MAP: Record<TermFilter, string | null> = {
+  ALL: null, ACCEPT: "accepted", REVIEW: "manual_review", REJECT: "rejected",
+};
 
 // ── Activity helpers ──────────────────────────────────────────────────────
 function ExecStatusGlyph({ status }: { status: string }) {
@@ -288,9 +291,7 @@ function MarketPageInner() {
   const { theme } = useTheme();
   const searchParams = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState<MarketTab>(() =>
-    searchParams?.get("tab") === "activity" ? "activity" : "leaders"
-  );
+  const [activeTab, setActiveTab] = useState<MarketTab>("leaders");
   const [selectedLeader, setSelectedLeader] = useState<Leader | null>(null);
 
   const { data: leaders, isLoading: lLoad, isError: lError } = useLeaders();
@@ -298,17 +299,15 @@ function MarketPageInner() {
   const [termFilter,  setTermFilter]  = useState<TermFilter>("ALL");
   const [glassFilter, setGlassFilter] = useState<GlassFilter>("All");
 
+  // Sync tab from URL param — reacts to both set and clear
   useEffect(() => {
-    if (searchParams?.get("tab") === "activity") setActiveTab("activity");
+    setActiveTab(searchParams?.get("tab") === "activity" ? "activity" : "leaders");
   }, [searchParams]);
 
   /* ── Terminal ──────────────────────────────────────────────────────── */
   if (theme === "terminal") {
-    const termFilterMap: Record<TermFilter, string | null> = {
-      ALL: null, ACCEPT: "accepted", REVIEW: "manual_review", REJECT: "rejected",
-    };
     const filteredEvents = events?.filter((e) => {
-      const want = termFilterMap[termFilter];
+      const want = TERM_FILTER_MAP[termFilter];
       if (!want) return true;
       return e.decision?.outcome === want;
     }) ?? [];
