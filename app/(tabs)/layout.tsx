@@ -7,6 +7,7 @@ import { GlassBackdrop }  from "@/components/glass/GlassBackdrop";
 import { GlassStatusBar } from "@/components/glass/GlassStatusBar";
 import { GlassTicker }    from "@/components/glass/GlassTicker";
 import { GlassTabBar }    from "@/components/glass/GlassTabBar";
+import { OnboardingManager } from "@/components/onboarding/OnboardingManager";
 
 // ── Terminal chrome (legacy, unchanged) ───────────────────────────────
 import { TermStatusBar } from "@/components/terminal/TermStatusBar";
@@ -46,6 +47,7 @@ export default function TabsLayout({ children }: { children: React.ReactNode }) 
         {children}
       </main>
       <GlassTabBar />
+      <OnboardingManager />
     </div>
   );
 }

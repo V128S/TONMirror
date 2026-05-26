@@ -437,7 +437,24 @@ export default function SettingsPage() {
         <Glass radius={22} padding={0} className="overflow-hidden">
           <SettingRow icon={<span style={{ fontSize: 14 }}>ℹ</span>} label="Version" right={<span className="text-subtle" style={{ fontSize: 12 }}>v0.9.4</span>} />
           <SettingRow icon={<span style={{ fontSize: 14 }}>⚖</span>} label="Terms of Service" last={false} onClick={() => {}} />
-          <SettingRow icon={<span style={{ fontSize: 14 }}>🔒</span>} label="Privacy Policy" last onClick={() => {}} />
+          <SettingRow icon={<span style={{ fontSize: 14 }}>🔒</span>} label="Privacy Policy" last={false} onClick={() => {}} />
+          <SettingRow
+            icon={<span style={{ fontSize: 14 }}>◎</span>}
+            label="Show onboarding again"
+            last
+            control={
+              <GlassButton
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  localStorage.removeItem("tonmirror-onboarded");
+                  window.location.reload();
+                }}
+              >
+                Show
+              </GlassButton>
+            }
+          />
         </Glass>
 
         <div className="text-center text-subtle pt-2 pb-4" style={{ fontSize: 11 }}>
