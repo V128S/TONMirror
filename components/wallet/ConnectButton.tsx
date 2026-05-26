@@ -62,6 +62,7 @@ export function ConnectButton({ className, compact = false }: ConnectButtonProps
   return (
     <button
       onClick={connect}
+      data-tour="connect-wallet"
       className={cn(
         "inline-flex items-center justify-center gap-2 px-4 py-2.5",
         "rounded-2xl bg-ton-500 text-white text-sm font-semibold",
