@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 
 interface TourStep {
   targetSelector: string;
@@ -30,37 +30,47 @@ interface TargetRect {
 
 export function SpotlightTour({ onComplete }: SpotlightTourProps) {
   const [stepIdx, setStepIdx] = useState(0);
-  const [rect, setRect] = useState<TargetRect | null>(null);
+  const [rect, setRect]       = useState<TargetRect | null>(null);
+  // Viewport size tracked in state to avoid SSR/hydration mismatch
+  const [vp, setVp]           = useState<{ w: number; h: number } | null>(null);
 
   const step = STEPS[stepIdx];
 
-  const measureTarget = useCallback(() => {
-    const el = document.querySelector(step.targetSelector);
-    if (!el) {
-      setRect(null);
-      return;
-    }
-    const r = el.getBoundingClientRect();
-    setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
-  }, [step.targetSelector]);
-
+  // Track actual viewport dimensions on the client only
   useEffect(() => {
-    measureTarget();
-    window.addEventListener("resize", measureTarget);
-    return () => window.removeEventListener("resize", measureTarget);
-  }, [measureTarget]);
+    const update = () => setVp({ w: window.innerWidth, h: window.innerHeight });
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  // Measure target element whenever step changes
+  useEffect(() => {
+    const measure = () => {
+      if (!step) { setRect(null); return; }
+      const el = document.querySelector(step.targetSelector);
+      if (!el) { setRect(null); return; }
+      const r = el.getBoundingClientRect();
+      setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [step?.targetSelector]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!step) return null;
 
   const advance = () => {
     if (stepIdx < STEPS.length - 1) setStepIdx(stepIdx + 1);
     else onComplete();
   };
 
-  const vw = typeof window !== "undefined" ? window.innerWidth : 390;
-  const vh = typeof window !== "undefined" ? window.innerHeight : 844;
+  const vw  = vp?.w ?? 390;
+  const vh  = vp?.h ?? 844;
   const pad = 6;
 
-  // Build clip-path polygon that cuts out a rectangle around the target
-  let clipPath = "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)"; // full overlay if no rect
+  // Build clip-path polygon that cuts a rectangular hole in the overlay
+  let clipPath = "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)";
   if (rect) {
     const x1 = Math.max(0, rect.left - pad);
     const y1 = Math.max(0, rect.top - pad);
@@ -75,32 +85,27 @@ export function SpotlightTour({ onComplete }: SpotlightTourProps) {
   // Tooltip position
   const TOOLTIP_W = 260;
   const TOOLTIP_H = 120;
-  let tooltipTop = 0;
-  let tooltipLeft = 0;
+  let tooltipTop  = vh / 2 - TOOLTIP_H / 2;
+  let tooltipLeft = vw / 2 - TOOLTIP_W / 2;
   if (rect) {
-    if (step.placement === "top") {
-      tooltipTop = rect.top - TOOLTIP_H - 12;
-    } else {
-      tooltipTop = rect.top + rect.height + 12;
-    }
+    tooltipTop  = step.placement === "top"
+      ? rect.top - TOOLTIP_H - 12
+      : rect.top + rect.height + 12;
     tooltipLeft = Math.max(12, Math.min(vw - TOOLTIP_W - 12, rect.left + rect.width / 2 - TOOLTIP_W / 2));
-    // Clamp top to screen
+    // Clamp vertically
     if (tooltipTop < 12) tooltipTop = 12;
     if (tooltipTop + TOOLTIP_H > vh - 12) tooltipTop = vh - TOOLTIP_H - 12;
-  } else {
-    tooltipTop = vh / 2 - TOOLTIP_H / 2;
-    tooltipLeft = vw / 2 - TOOLTIP_W / 2;
   }
 
   return (
     <div className="fixed inset-0 z-[300]" onClick={advance} style={{ cursor: "pointer" }}>
-      {/* Dark overlay with hole */}
+      {/* Dark overlay with cutout hole */}
       <div
         className="absolute inset-0"
         style={{ background: "rgba(0,0,0,0.65)", clipPath, pointerEvents: "none" }}
       />
 
-      {/* Tooltip */}
+      {/* Tooltip card */}
       <div
         className="absolute"
         style={{

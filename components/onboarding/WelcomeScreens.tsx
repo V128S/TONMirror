@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useTheme } from "@/components/theme/ThemeProvider";
 
 interface WelcomeScreensProps {
   onComplete: () => void;
@@ -26,7 +25,6 @@ const SLIDES = [
 ];
 
 export function WelcomeScreens({ onComplete }: WelcomeScreensProps) {
-  const { theme } = useTheme();
   const [idx, setIdx] = useState(0);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
@@ -50,8 +48,7 @@ export function WelcomeScreens({ onComplete }: WelcomeScreensProps) {
   const slide = SLIDES[idx];
   const isLast = idx === SLIDES.length - 1;
 
-  // theme variable used for potential future theming differentiation
-  void theme;
+
 
   return (
     <div
