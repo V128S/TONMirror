@@ -41,6 +41,32 @@ type TelegramWebAppEventType =
   | "invoiceClosed"
   | "settingsButtonClicked";
 
+/** Нативная кнопка снизу Mini App (зелёная по умолчанию) */
+interface TelegramWebAppButton {
+  text:           string;
+  color:          string;
+  textColor:      string;
+  isVisible:      boolean;
+  isActive:       boolean;
+  isProgressVisible: boolean;
+  setText(text: string): TelegramWebAppButton;
+  onClick(callback: () => void): TelegramWebAppButton;
+  offClick(callback: () => void): TelegramWebAppButton;
+  show(): TelegramWebAppButton;
+  hide(): TelegramWebAppButton;
+  enable(): TelegramWebAppButton;
+  disable(): TelegramWebAppButton;
+  showProgress(leaveActive?: boolean): TelegramWebAppButton;
+  hideProgress(): TelegramWebAppButton;
+  setParams(params: {
+    text?:       string;
+    color?:      string;
+    text_color?: string;
+    is_active?:  boolean;
+    is_visible?: boolean;
+  }): TelegramWebAppButton;
+}
+
 interface TelegramWebApp {
   initData:            string;
   initDataUnsafe:      TelegramWebAppInitData;
@@ -52,6 +78,10 @@ interface TelegramWebApp {
   viewportHeight:      number;
   viewportStableHeight: number;
   isClosingConfirmationEnabled: boolean;
+  /** Главная нативная кнопка (зелёная) внизу приложения */
+  MainButton:          TelegramWebAppButton;
+  /** Вторая нативная кнопка (Bot API 7.10+) */
+  SecondaryButton:     TelegramWebAppButton;
   ready():             void;
   expand():            void;
   close():             void;

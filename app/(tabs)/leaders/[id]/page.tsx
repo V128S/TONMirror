@@ -23,6 +23,7 @@ import {
 import { useLeader, useFollowLeader } from "@/hooks/useLeaders";
 import { useStrategies, usePauseStrategy, useDeleteStrategy } from "@/hooks/useStrategies";
 import { useActivity } from "@/hooks/useActivity";
+import { useTelegramMainButton, useTelegramSecondaryButton } from "@/hooks/useTelegramButton";
 
 interface FormValues {
   mode: "fixed_amount" | "percent_of_leader";
@@ -278,6 +279,28 @@ export default function LeaderDetailPage() {
 
   const isFollowing = strategies?.some((s) => s.leaderWalletId === id) ?? false;
   const [editOpen, setEditOpen] = useState(false);
+  const follow = useFollowLeader();
+
+  // ── Нативные кнопки Telegram ──────────────────────────────────────────────
+  // Зелёная кнопка снизу — "FOLLOW" когда не следим, "FOLLOWING ✓" когда следим
+  useTelegramMainButton({
+    text:     isFollowing ? "✓ FOLLOWING" : "🔮 START COPY-TRADING",
+    visible:  !!leader && !isLoading,
+    color:    isFollowing ? "#1a6b35" : "#00b34a",
+    disabled: follow.isPending,
+    onClick:  () => {
+      if (!isFollowing && leader) {
+        follow.mutate({ leaderWalletId: leader.id });
+      }
+    },
+  });
+
+  // Серая кнопка рядом — "BACK" (SecondaryButton, Bot API 7.10+)
+  useTelegramSecondaryButton({
+    text:    "← BACK",
+    visible: !!leader && !isLoading,
+    onClick: () => router.back(),
+  });
 
   if (isLoading) {
     return (
