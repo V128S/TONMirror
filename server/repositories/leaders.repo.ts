@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { LeaderSourceType, Prisma } from "@prisma/client";
+import type { LeaderSourceType } from "@prisma/client";
 
 export type LeaderCreateInput = {
   nickname:      string;
@@ -52,6 +52,49 @@ export const leadersRepo = {
   /** Hard delete */
   async delete(id: string) {
     return prisma.leaderWallet.delete({ where: { id } });
+  },
+
+  /**
+   * Upsert a whale discovered by the crawler.
+   * If a leader with this address already exists, updates score fields only.
+   * If new, creates with sourceType = auto_discovered.
+   */
+  async upsertFromCrawler(whale: import("@/modules/whale-discovery/types").WhaleScore) {
+    return prisma.leaderWallet.upsert({
+      where:  { address: whale.address },
+      create: {
+        address:          whale.address,
+        nickname:         whale.nickname,
+        tags:             whale.tags,
+        riskScore:        Math.round((1 - whale.winRate) * 10),
+        activityScore:    whale.activityScore,
+        winRateApprox:    whale.winRate,
+        sourceType:       "auto_discovered",
+        discoveryScore:   whale.score,
+        volumeUsd30d:     whale.volumeUsd30d,
+        tradeCount30d:    whale.tradeCount30d,
+        lastDiscoveredAt: new Date(),
+      },
+      update: {
+        tags:             whale.tags,
+        activityScore:    whale.activityScore,
+        winRateApprox:    whale.winRate,
+        discoveryScore:   whale.score,
+        volumeUsd30d:     whale.volumeUsd30d,
+        tradeCount30d:    whale.tradeCount30d,
+        lastDiscoveredAt: new Date(),
+      },
+    });
+  },
+
+  /** Count auto_discovered leaders added/updated since a given timestamp */
+  async countDiscovered(since: Date): Promise<number> {
+    return prisma.leaderWallet.count({
+      where: {
+        sourceType:       "auto_discovered",
+        lastDiscoveredAt: { gte: since },
+      },
+    });
   },
 
   /**
