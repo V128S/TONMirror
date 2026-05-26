@@ -4,7 +4,6 @@ import { useTheme } from "@/components/theme/ThemeProvider";
 
 // ── Glass chrome ───────────────────────────────────────────────────────
 import { GlassBackdrop }  from "@/components/glass/GlassBackdrop";
-import { GlassStatusBar } from "@/components/glass/GlassStatusBar";
 import { GlassTicker }    from "@/components/glass/GlassTicker";
 import { GlassTabBar }    from "@/components/glass/GlassTabBar";
 import { OnboardingManager } from "@/components/onboarding/OnboardingManager";
@@ -40,10 +39,9 @@ export default function TabsLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="relative min-h-screen text-fg">
       <GlassBackdrop />
-      <GlassStatusBar />
       <GlassTicker />
-      {/* pt-[77px] clears status-bar (47px) + ticker (30px); pb-[96px] clears tab bar */}
-      <main className="relative z-10 pt-[77px] pb-[96px]">
+      {/* pt-[30px] clears ticker (30px); pb-[96px] clears tab bar */}
+      <main className="relative z-10 pt-[30px] pb-[96px]">
         {children}
       </main>
       <GlassTabBar />

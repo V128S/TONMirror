@@ -10,10 +10,12 @@ interface ConnectButtonProps {
   compact?: boolean;
 }
 
+/** TON official blue. Used consistently regardless of app theme. */
+const TON_BLUE = "#0098EA";
+
 /**
  * TON wallet connect/disconnect button.
- * Matches the dark TonMirror design system.
- * Uses our useWallet / useWalletActions abstractions — no direct SDK imports in UI.
+ * Uses inline styles for theme-agnostic TON brand colours — works in both glass and terminal themes.
  */
 export function ConnectButton({ className, compact = false }: ConnectButtonProps) {
   const { isConnected, shortAddress, walletName, isRestored } = useWallet();
@@ -29,32 +31,39 @@ export function ConnectButton({ className, compact = false }: ConnectButtonProps
       // Compact badge variant: address + tap to disconnect
       <button
         onClick={disconnect}
-        className={cn(
-          "inline-flex items-center gap-1.5 px-3 py-1.5",
-          "rounded-2xl bg-ton-500/15 text-ton-400 text-xs font-medium",
-          "hover:bg-ton-500/25 active:scale-[0.97] transition-all",
-          className,
-        )}
+        data-tour="connect-wallet"
         title={`${walletName ?? "Wallet"} — tap to disconnect`}
+        className={cn("inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-medium active:scale-[0.97] transition-all", className)}
+        style={{
+          background: `${TON_BLUE}1A`, // 10% opacity
+          color: TON_BLUE,
+          border: `1px solid ${TON_BLUE}33`,
+        }}
       >
-        <span className="size-1.5 rounded-full bg-ton-400 shrink-0" />
+        <span
+          className="size-1.5 rounded-full shrink-0"
+          style={{ background: TON_BLUE }}
+        />
         {shortAddress}
       </button>
     ) : (
       // Full disconnect button
       <button
         onClick={disconnect}
-        className={cn(
-          "inline-flex items-center gap-2 px-4 py-2.5",
-          "rounded-2xl bg-surface-2 border border-surface-border",
-          "text-text-primary text-sm font-medium",
-          "hover:bg-surface-3 active:scale-[0.97] transition-all",
-          className,
-        )}
+        data-tour="connect-wallet"
+        className={cn("inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-medium active:scale-[0.97] transition-all", className)}
+        style={{
+          background: "var(--glass-hi, rgba(255,255,255,0.06))",
+          border: "1px solid var(--glass-edge, rgba(255,255,255,0.12))",
+          color: "rgb(var(--text1, 10 10 14))",
+        }}
       >
-        <span className="size-2 rounded-full bg-green-400 shrink-0" />
+        <span
+          className="size-2 rounded-full shrink-0"
+          style={{ background: TON_BLUE, boxShadow: `0 0 6px ${TON_BLUE}88` }}
+        />
         {shortAddress}
-        <span className="text-text-muted text-xs">✕</span>
+        <span style={{ opacity: 0.4, fontSize: 11 }}>✕</span>
       </button>
     );
   }
@@ -65,10 +74,14 @@ export function ConnectButton({ className, compact = false }: ConnectButtonProps
       data-tour="connect-wallet"
       className={cn(
         "inline-flex items-center justify-center gap-2 px-4 py-2.5",
-        "rounded-2xl bg-ton-500 text-white text-sm font-semibold",
-        "hover:bg-ton-600 active:scale-[0.97] transition-all",
+        "rounded-2xl text-sm font-semibold",
+        "active:scale-[0.97] transition-all",
         className,
       )}
+      style={{
+        background: TON_BLUE,
+        color: "#ffffff",
+      }}
     >
       Connect Wallet
     </button>

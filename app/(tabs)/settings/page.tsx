@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTheme, type AppTheme } from "@/components/theme/ThemeProvider";
 
 // ── Glass imports ───────────────────────────────────────────────────────
@@ -31,6 +31,9 @@ import { ONBOARDED_KEY } from "@/components/onboarding/OnboardingManager";
 
 type FeedbackState = { type: "success" | "error"; message: string } | null;
 
+const PROFILE_KEY = "tonmirror-profile";
+interface ProfileData { displayName: string; bio: string }
+
 /* ── Theme picker (used in both glass and terminal Settings) ─────────── */
 const THEME_OPTIONS: { value: AppTheme; label: string; desc: string }[] = [
   { value: "glass",      label: "Light Glass",  desc: "Crystal white · default" },
@@ -48,6 +51,36 @@ export default function SettingsPage() {
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [showThemePicker, setShowThemePicker] = useState(false);
+
+  // Profile editing
+  const [profile, setProfile] = useState<ProfileData>({ displayName: "", bio: "" });
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [editName, setEditName]   = useState("");
+  const [editBio,  setEditBio]    = useState("");
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(PROFILE_KEY);
+      if (saved) setProfile(JSON.parse(saved) as ProfileData);
+    } catch { /* ignore */ }
+  }, []);
+
+  const startEditProfile = () => {
+    const defaultName = user ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}` : "";
+    setEditName(profile.displayName || defaultName);
+    setEditBio(profile.bio);
+    setEditingProfile(true);
+    setTimeout(() => nameInputRef.current?.focus(), 50);
+  };
+
+  const saveProfile = () => {
+    const next: ProfileData = { displayName: editName.trim(), bio: editBio.trim() };
+    setProfile(next);
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(next));
+    setEditingProfile(false);
+    showFeedback("success", "Profile saved.");
+  };
 
   const showFeedback = (type: "success" | "error", message: string) => {
     setFeedback({ type, message });
@@ -241,19 +274,80 @@ export default function SettingsPage() {
         )}
 
         {/* Profile */}
-        <SectionLabel>Profile</SectionLabel>
+        <SectionLabel right={
+          !editingProfile && (
+            <button
+              onClick={startEditProfile}
+              className="text-subtle active:opacity-60 transition-opacity"
+              style={{ fontSize: 13, fontWeight: 500 }}
+            >
+              Edit
+            </button>
+          )
+        }>Profile</SectionLabel>
         <Glass radius={22} padding={0} className="overflow-hidden">
-          <div className="grid items-center gap-3 px-3 py-4" style={{ gridTemplateColumns: "44px 1fr" }}>
-            <Avatar name={user?.firstName ?? "User"} size={44} />
-            <div>
-              <div className="text-fg" style={{ fontSize: 15, fontWeight: 600 }}>
-                {user ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}` : "Loading…"}
+          {editingProfile ? (
+            <div className="px-4 py-4 space-y-3">
+              <div>
+                <div className="text-subtle" style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>
+                  Display Name
+                </div>
+                <input
+                  ref={nameInputRef}
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Your name"
+                  maxLength={40}
+                  className="w-full rounded-[14px] px-3 py-2.5 text-fg outline-none"
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 500,
+                    background: "var(--glass-hi, rgba(0,0,0,0.04))",
+                    border: "1px solid var(--glass-edge, rgba(0,0,0,0.08))",
+                    color: "rgb(var(--text1))",
+                  }}
+                />
               </div>
-              {user?.username && (
-                <div className="text-subtle" style={{ fontSize: 12, marginTop: 2 }}>@{user.username}</div>
-              )}
+              <div>
+                <div className="text-subtle" style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>
+                  Bio
+                </div>
+                <textarea
+                  value={editBio}
+                  onChange={(e) => setEditBio(e.target.value)}
+                  placeholder="A short bio…"
+                  maxLength={120}
+                  rows={2}
+                  className="w-full rounded-[14px] px-3 py-2.5 text-fg outline-none resize-none"
+                  style={{
+                    fontSize: 13,
+                    background: "var(--glass-hi, rgba(0,0,0,0.04))",
+                    border: "1px solid var(--glass-edge, rgba(0,0,0,0.08))",
+                    color: "rgb(var(--text1))",
+                  }}
+                />
+              </div>
+              <div className="flex gap-2">
+                <GlassButton variant="primary" size="sm" fullWidth onClick={saveProfile}>Save</GlassButton>
+                <GlassButton variant="secondary" size="sm" fullWidth onClick={() => setEditingProfile(false)}>Cancel</GlassButton>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="grid items-center gap-3 px-3 py-4" style={{ gridTemplateColumns: "44px 1fr" }}>
+              <Avatar name={profile.displayName || user?.firstName || "User"} size={44} />
+              <div>
+                <div className="text-fg" style={{ fontSize: 15, fontWeight: 600 }}>
+                  {profile.displayName ||
+                    (user ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}` : "Loading…")}
+                </div>
+                {profile.bio ? (
+                  <div className="text-subtle" style={{ fontSize: 12, marginTop: 2 }}>{profile.bio}</div>
+                ) : user?.username ? (
+                  <div className="text-subtle" style={{ fontSize: 12, marginTop: 2 }}>@{user.username}</div>
+                ) : null}
+              </div>
+            </div>
+          )}
         </Glass>
 
         {/* Wallet */}
