@@ -250,39 +250,40 @@ export default function PortfolioPage() {
           </Glass>
         ) : (
           <Glass hi className="p-4 rounded-2xl">
-            <div
-              className="text-xs uppercase tracking-wider mb-1"
-              style={{ color: "rgb(var(--text3))" }}
-            >
+            <div className="text-xs uppercase tracking-wider mb-1" style={{ color: "rgb(var(--text3))" }}>
               Wallet Balance
             </div>
             {balanceLoading ? (
               <GlassSkeleton className="h-8 w-40" />
-            ) : (
+            ) : tonFormatted ? (
               <>
-                <div
-                  className="text-2xl font-semibold"
-                  style={{ color: "rgb(var(--text1))" }}
-                >
-                  {tonFormatted ?? "—"}
+                <div className="text-2xl font-semibold" style={{ color: "rgb(var(--text1))" }}>
+                  {tonFormatted}
                 </div>
                 {usdFormatted && (
-                  <div
-                    className="text-sm mt-0.5"
-                    style={{ color: "rgb(var(--text2))" }}
-                  >
+                  <div className="text-sm mt-0.5" style={{ color: "rgb(var(--text2))" }}>
                     {usdFormatted}
                   </div>
                 )}
-                {source === "approx" && (
-                  <div
-                    className="text-xs mt-1"
-                    style={{ color: "rgb(var(--text3))" }}
-                  >
-                    * Приблизительно из скопированных сделок
-                  </div>
-                )}
               </>
+            ) : usdFormatted ? (
+              <>
+                <div className="text-2xl font-semibold" style={{ color: "rgb(var(--text1))" }}>
+                  {usdFormatted}
+                </div>
+                <div className="text-xs mt-1" style={{ color: "rgb(var(--text3))" }}>
+                  * Estimated from copied trades
+                </div>
+              </>
+            ) : (
+              <div>
+                <div className="text-2xl font-semibold" style={{ color: "rgb(var(--text3))" }}>
+                  Unavailable
+                </div>
+                <div className="text-xs mt-1" style={{ color: "rgb(var(--text3))" }}>
+                  Live balance requires network access to tonapi.io
+                </div>
+              </div>
             )}
           </Glass>
         )}

@@ -8,71 +8,54 @@ import { useActivity } from "./useActivity";
 export interface TonBalanceResult {
   tonRaw: bigint | null;       // nanotons
   tonFormatted: string | null; // "12.45 TON"
-  usdFormatted: string | null; // "≈ $36.20"
+  usdFormatted: string | null; // "≈ $36.20 traded"
   source: "live" | "approx" | "none";
   isLoading: boolean;
 }
 
-/** tonapi.io /v2/accounts returns balance as a string (nanotons) */
-const TonApiAccountSchema = z.object({
-  balance: z.union([z.string(), z.number()]),
+const BalanceResponseSchema = z.object({
+  balance: z.string(),
 });
 
 const TON_NANO = BigInt(1_000_000_000);
 
-/** Parse tonapi balance safely — handles both string and number forms,
- *  avoids Number precision loss for large balances. */
-function parseNanotons(raw: string | number): bigint {
-  if (typeof raw === "string") return BigInt(raw);
-  // Use string conversion to avoid floating-point truncation
-  return BigInt(Math.trunc(raw).toString());
+function parseNanotons(raw: string): bigint {
+  try { return BigInt(raw); } catch { return BigInt(0); }
 }
 
-const apiKey = process.env.NEXT_PUBLIC_TON_API_KEY ?? "";
-const hasApiKey = apiKey.length > 0;
-
 export function useTonBalance(): TonBalanceResult {
-  const address    = useTonAddress();
+  const address     = useTonAddress();
   const isConnected = !!address;
 
-  // ── Live balance from tonapi.io ────────────────────────────────────────
-  // Works without an API key (public tier, rate-limited). Key adds priority quota.
-  const {
-    data: liveData,
-    isLoading: liveLoading,
-    isError: liveError,
-  } = useQuery({
+  // ── Live balance via server-side proxy (avoids CORS, hides API key) ─────
+  const { data: liveData, isLoading: liveLoading, isError: liveError } = useQuery({
     queryKey: ["ton-balance", address],
     queryFn: async ({ signal }) => {
-      const headers: Record<string, string> = { Accept: "application/json" };
-      if (hasApiKey) headers["Authorization"] = `Bearer ${apiKey}`;
-      const res = await fetch(`https://tonapi.io/v2/accounts/${address}`, {
-        headers,
-        signal,
-      });
-      if (!res.ok) throw new Error(`tonapi ${res.status}`);
+      const res = await fetch(
+        `/api/ton/balance?address=${encodeURIComponent(address!)}`,
+        { signal },
+      );
+      if (!res.ok) throw new Error(`balance ${res.status}`);
       const json: unknown = await res.json();
-      return TonApiAccountSchema.parse(json);
+      return BalanceResponseSchema.parse(json);
     },
-    enabled: isConnected, // fetch even without API key — falls back to approx on error
-    staleTime: 30_000,
+    enabled:         isConnected,
+    staleTime:       30_000,
     refetchInterval: 60_000,
-    retry: 1,
+    retry:           1,
   });
 
-  // ── Approx from activity (fallback) ────────────────────────────────────
+  // ── Fallback: sum from accepted copy trades ─────────────────────────────
   const { data: activityData } = useActivity({ limit: 200 });
 
   if (!isConnected) {
     return { tonRaw: null, tonFormatted: null, usdFormatted: null, source: "none", isLoading: false };
   }
 
-  // Loading state
   if (liveLoading) {
     return { tonRaw: null, tonFormatted: null, usdFormatted: null, source: "live", isLoading: true };
   }
 
-  // Live path — tonapi returned data
   if (!liveError && liveData) {
     const nanotons = parseNanotons(liveData.balance);
     const tons     = Number(nanotons * BigInt(100) / TON_NANO) / 100;
@@ -85,8 +68,7 @@ export function useTonBalance(): TonBalanceResult {
     };
   }
 
-  // Fallback: sum cumulative volume from accepted copy trades
-  // (not a real wallet balance — shown with explicit disclaimer in UI)
+  // Fallback — cumulative copy-trade volume (not a real wallet balance)
   const approxUsd =
     activityData
       ?.filter((e) => e.decision?.outcome === "accepted")

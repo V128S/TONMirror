@@ -35,33 +35,33 @@ export async function POST(req: NextRequest) {
 
     const chatId = msg.chat.id;
     const text   = msg.text ?? "";
-    const name   = msg.from?.first_name ?? "Трейдер";
+    const name   = msg.from?.first_name ?? "Trader";
 
     // ── /start ────────────────────────────────────────────────────────────────
     if (text.startsWith("/start")) {
       await sendMessage(chatId,
-        `🔮 <b>Добро пожаловать в TonMirror, ${name}!</b>\n\n` +
-        `Автоматическое копирование сделок лучших трейдеров TON blockchain.\n\n` +
-        `<b>Что умеет приложение:</b>\n` +
-        `🐋 Whale Scanner — находит прибыльных китов автоматически\n` +
-        `⚡ Copy-trading — зеркалирует их сделки в реальном времени\n` +
-        `🛡 Risk filters — защита от рискованных операций\n` +
-        `📊 Portfolio — отслеживание PnL и активных стратегий\n\n` +
-        `Нажми кнопку <b>Open App</b> в меню чата или кнопку ниже 👇`,
+        `🔮 <b>Welcome to TonMirror, ${name}!</b>\n\n` +
+        `Automated copy-trading for the TON blockchain.\n\n` +
+        `<b>What it does:</b>\n` +
+        `🐋 Whale Scanner — automatically finds profitable wallets\n` +
+        `⚡ Copy-trading — mirrors their trades in real time\n` +
+        `🛡 Risk filters — protection against high-risk operations\n` +
+        `📊 Portfolio — track PnL and active strategies\n\n` +
+        `Tap <b>Open App</b> in the chat menu or use the button below 👇`,
         {
           reply_markup: {
             inline_keyboard: [[
               {
-                text:    "🔮 Открыть TonMirror",
+                text:    "🔮 Open TonMirror",
                 web_app: { url: APP_URL },
               },
             ], [
               {
-                text: "🐋 Лидеры",
+                text: "🐋 Leaders",
                 web_app: { url: `${APP_URL}/leaders` },
               },
               {
-                text: "📊 Портфель",
+                text: "📊 Portfolio",
                 web_app: { url: `${APP_URL}/portfolio` },
               },
             ]],
@@ -73,10 +73,10 @@ export async function POST(req: NextRequest) {
 
     // ── /leaders ──────────────────────────────────────────────────────────────
     if (text.startsWith("/leaders")) {
-      await sendMessage(chatId, "🐋 <b>Топ-трейдеры TON</b>\n\nОткрой приложение чтобы просмотреть и начать копировать:", {
+      await sendMessage(chatId, "🐋 <b>Top TON traders</b>\n\nOpen the app to browse and start copying:", {
         reply_markup: {
           inline_keyboard: [[
-            { text: "🐋 Смотреть лидеров", web_app: { url: `${APP_URL}/leaders` } },
+            { text: "🐋 Browse leaders", web_app: { url: `${APP_URL}/leaders` } },
           ]],
         },
       });
@@ -85,10 +85,10 @@ export async function POST(req: NextRequest) {
 
     // ── /portfolio ────────────────────────────────────────────────────────────
     if (text.startsWith("/portfolio")) {
-      await sendMessage(chatId, "📊 <b>Твой портфель</b>\n\nАктивные стратегии и PnL:", {
+      await sendMessage(chatId, "📊 <b>Your portfolio</b>\n\nActive strategies and PnL:", {
         reply_markup: {
           inline_keyboard: [[
-            { text: "📊 Открыть портфель", web_app: { url: `${APP_URL}/portfolio` } },
+            { text: "📊 Open portfolio", web_app: { url: `${APP_URL}/portfolio` } },
           ]],
         },
       });
@@ -97,10 +97,10 @@ export async function POST(req: NextRequest) {
 
     // ── /activity ─────────────────────────────────────────────────────────────
     if (text.startsWith("/activity")) {
-      await sendMessage(chatId, "⚡ <b>Лента сделок</b>\n\nПоследние торговые сигналы и решения:", {
+      await sendMessage(chatId, "⚡ <b>Trade feed</b>\n\nLatest trading signals and decisions:", {
         reply_markup: {
           inline_keyboard: [[
-            { text: "⚡ Лента активности", web_app: { url: `${APP_URL}/activity` } },
+            { text: "⚡ Activity feed", web_app: { url: `${APP_URL}/activity` } },
           ]],
         },
       });
@@ -110,12 +110,12 @@ export async function POST(req: NextRequest) {
     // ── /help ─────────────────────────────────────────────────────────────────
     if (text.startsWith("/help")) {
       await sendMessage(chatId,
-        `❓ <b>Помощь по TonMirror</b>\n\n` +
-        `/start — главная страница\n` +
-        `/leaders — топ-трейдеры TON\n` +
-        `/portfolio — твой портфель\n` +
-        `/activity — лента сделок\n\n` +
-        `<i>Нажми кнопку меню (кружок слева от ввода) чтобы сразу открыть приложение.</i>`,
+        `❓ <b>TonMirror Help</b>\n\n` +
+        `/start — home page\n` +
+        `/leaders — top TON traders\n` +
+        `/portfolio — your portfolio\n` +
+        `/activity — trade feed\n\n` +
+        `<i>Tap the menu button (circle left of input) to open the app directly.</i>`,
       );
       return NextResponse.json({ ok: true });
     }

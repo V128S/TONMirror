@@ -10,17 +10,17 @@ const SLIDES = [
   {
     icon: "◆",
     title: "Copy the best traders\non TON — automatically.",
-    body: "TonMirror зеркалирует сделки топовых кошельков прямо в твой. Никакого трейдинга вручную.",
+    body: "TonMirror mirrors trades of top wallets directly into yours. No manual trading required.",
   },
   {
     icon: "👁",
     title: "Follow a Leader",
-    body: "Изучи статистику, риск-скор и историю сделок. Один тап — и ты следишь за лидером.",
+    body: "Browse stats, risk score, and trade history. One tap to start following a leader.",
   },
   {
     icon: "⚡",
     title: "Auto or Manual",
-    body: "Подтверждай каждую сделку вручную или дай стратегии работать автоматом.",
+    body: "Confirm each trade manually or let the strategy run fully automated.",
   },
 ];
 
@@ -64,7 +64,7 @@ export function WelcomeScreens({ onComplete }: WelcomeScreensProps) {
           style={{ color: "rgb(var(--text3))", fontSize: 14 }}
           className="py-1 px-2"
         >
-          Пропустить
+          Skip
         </button>
       </div>
 
@@ -115,7 +115,7 @@ export function WelcomeScreens({ onComplete }: WelcomeScreensProps) {
             cursor: "pointer",
           }}
         >
-          {isLast ? "Начать" : "Далее"}
+          {isLast ? "Get started" : "Next"}
         </button>
       </div>
     </div>

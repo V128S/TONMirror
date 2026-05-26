@@ -14,11 +14,11 @@ interface SpotlightTourProps {
 }
 
 const STEPS: TourStep[] = [
-  { targetSelector: '[data-tour="tab-mirror"]',    title: "Live Feed",      body: "Все входящие сигналы от лидеров в реальном времени.", placement: "top" },
-  { targetSelector: '[data-tour="tab-market"]',    title: "Market",         body: "Лидеры и лента сделок в одном месте.", placement: "top" },
-  { targetSelector: '[data-tour="tab-portfolio"]', title: "Portfolio",      body: "Баланс кошелька, стратегии и PnL.", placement: "top" },
-  { targetSelector: '[data-tour="tab-settings"]',  title: "Settings",       body: "Тема, стратегия и демо-режим.", placement: "top" },
-  { targetSelector: '[data-tour="connect-wallet"]',title: "Connect Wallet", body: "Подключи кошелёк, чтобы начать копировать сделки.", placement: "bottom" },
+  { targetSelector: '[data-tour="tab-mirror"]',    title: "Live Feed",      body: "Incoming signals from all followed leaders in real time.", placement: "top" },
+  { targetSelector: '[data-tour="tab-market"]',    title: "Market",         body: "Leaders and trade feed in one place.", placement: "top" },
+  { targetSelector: '[data-tour="tab-portfolio"]', title: "Portfolio",      body: "Wallet balance, active strategies and PnL.", placement: "top" },
+  { targetSelector: '[data-tour="tab-settings"]',  title: "Settings",       body: "Theme, strategy config and demo controls.", placement: "top" },
+  { targetSelector: '[data-tour="connect-wallet"]',title: "Connect Wallet", body: "Connect your TON wallet to start copy-trading.", placement: "bottom" },
 ];
 
 interface TargetRect {
@@ -148,7 +148,7 @@ export function SpotlightTour({ onComplete }: SpotlightTourProps) {
           {step.body}
         </div>
         <div style={{ marginTop: 10, fontSize: 11, color: "#9a9aa2" }}>
-          {stepIdx + 1} / {STEPS.length} — нажми куда угодно
+          {stepIdx + 1} / {STEPS.length} — tap anywhere to continue
         </div>
       </div>
     </div>

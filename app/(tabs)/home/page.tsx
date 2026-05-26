@@ -198,18 +198,18 @@ export default function HomePage() {
           <div className="text-subtle" style={{ fontSize: 12, letterSpacing: "0.02em", marginBottom: 4 }}>
             Total balance
           </div>
-          {stratLoading ? (
+          {stratLoading || actLoading ? (
             <GlassSkeleton className="h-10 w-44" />
           ) : (
             <div className="text-fg gl-tnum" style={{ fontSize: 40, fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1 }}>
-              {formatUsd(totalVolume || 3420.18)}
+              {formatUsd(totalVolume)}
             </div>
           )}
           <div className="mt-1.5" style={{ fontSize: 13, color: "rgb(var(--text2))" }}>
             <span className="text-fg" style={{ fontWeight: 600 }}>
-              ↑ {formatUsd(activity ? Math.max(0, totalVolume * 0.04) : 124.4)}
+              {copiedToday} copied
             </span>
-            <span className="text-subtle"> &nbsp;·&nbsp; 24h</span>
+            <span className="text-subtle"> &nbsp;·&nbsp; today</span>
           </div>
 
           <div
@@ -246,7 +246,7 @@ export default function HomePage() {
         <div className="grid grid-cols-3 gap-2">
           <StatCell label="Copied · 24h" value={actLoading ? "…" : String(copiedToday)} sub="trades" />
           <StatCell label="Volume" value={actLoading ? "…" : formatUsd(totalVolume)} sub="gross" />
-          <StatCell label="Win rate" value="71%" sub="30d" />
+          <StatCell label="Strategies" value={stratLoading ? "…" : String(activeCount)} sub="active" />
         </div>
 
         {/* Active leaders */}
@@ -284,9 +284,9 @@ export default function HomePage() {
                   </div>
                   <div className="text-right">
                     <div className="text-fg gl-tnum" style={{ fontSize: 14, fontWeight: 600 }}>
-                      ↑ ${(s.leaderWallet.riskScore * 3 + 8).toFixed(1)}k
+                      {s.mode === "fixed_amount" ? `$${s.fixedAmount ?? "—"}` : `${s.percentOfLeader ?? "—"}%`}
                     </div>
-                    <div className="text-subtle" style={{ fontSize: 10 }}>30d</div>
+                    <div className="text-subtle" style={{ fontSize: 10 }}>copy size</div>
                   </div>
                 </Link>
               ))
