@@ -1,7 +1,7 @@
 {
-  "url": "http://localhost:3000",
+  "url": "https://tonmirror.vercel.app",
   "name": "TonMirror",
-  "iconUrl": "http://localhost:3000/icon.png",
-  "termsOfUseUrl": "http://localhost:3000/terms",
-  "privacyPolicyUrl": "http://localhost:3000/privacy"
+  "iconUrl": "https://tonmirror.vercel.app/icon.svg",
+  "termsOfUseUrl": "https://tonmirror.vercel.app",
+  "privacyPolicyUrl": "https://tonmirror.vercel.app"
 }
