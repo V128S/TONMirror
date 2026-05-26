@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useTheme } from "@/components/theme/ThemeProvider";
@@ -284,7 +284,7 @@ function LeaderSheetContent({ leader, onClose }: { leader: Leader; onClose: () =
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────
-export default function MarketPage() {
+function MarketPageInner() {
   const { theme } = useTheme();
   const searchParams = useSearchParams();
 
@@ -561,5 +561,13 @@ export default function MarketPage() {
         )}
       </BottomSheet>
     </div>
+  );
+}
+
+export default function MarketPage() {
+  return (
+    <Suspense fallback={null}>
+      <MarketPageInner />
+    </Suspense>
   );
 }
