@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Glass } from "./Glass";
+import { useTheme } from "@/components/theme/ThemeProvider";
 
 type IconRender = (active: boolean) => React.ReactNode;
 
@@ -66,22 +67,34 @@ const TABS: { href: string; label: string; icon: IconRender }[] = [
  */
 export function GlassTabBar() {
   const pathname = usePathname();
+  const { theme } = useTheme();
+  const isDark = theme === "glass-dark";
+
   return (
     <div className="fixed bottom-5 left-3.5 right-3.5 z-50 safe-area-pb">
       <Glass hi padding={5} className="flex items-center justify-between rounded-[28px]">
         {TABS.map((t) => {
           const active = pathname?.startsWith(t.href);
+
+          // Light: white pill (high contrast dark icon on white)
+          // Dark: subtle translucent highlight (white icon readable on near-black bg)
+          const activeBg   = isDark ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.90)";
+          const activeShadow = isDark
+            ? "0 1px 0 rgba(255,255,255,0.14) inset"
+            : "0 1px 0 var(--glass-edge) inset, 0 4px 12px -4px rgba(0,0,0,0.12)";
+          // In light mode: dark text on white pill. In dark mode: light text on dark-ish pill.
+          const activeColor  = isDark ? "rgb(var(--text1))" : "rgb(10,10,12)";
+          const inactiveColor = isDark ? "rgb(var(--text3))" : "rgb(var(--text3))";
+
           return (
             <Link
               key={t.href}
               href={t.href}
               className="flex-1 flex flex-col items-center gap-0.5 py-2 rounded-[22px] transition-colors"
               style={{
-                background: active ? "rgba(255,255,255,0.9)" : "transparent",
-                boxShadow: active
-                  ? "0 1px 0 var(--glass-edge) inset, 0 4px 12px -4px rgba(0,0,0,0.12)"
-                  : undefined,
-                color: active ? "rgb(var(--text1))" : "rgb(var(--text3))",
+                background:  active ? activeBg : "transparent",
+                boxShadow:   active ? activeShadow : undefined,
+                color:       active ? activeColor : inactiveColor,
               }}
             >
               {t.icon(!!active)}

@@ -35,23 +35,34 @@
 html.dark:not(.theme-terminal) {
   --bg:           12 12 16;
   --text1:        245 245 247;
-  --text2:        157 157 166;
-  --text3:        106 106 114;
-  --text4:        58 58 66;
+  --text2:        175 175 185;
+  --text3:        120 120 132;
+  --text4:        70 70 80;
   --hair:         255 255 255;
   --glass-inner:  255 255 255;
 
-  --glass:        rgba(255,255,255,0.06);
-  --glass-hi:     rgba(255,255,255,0.10);
-  --glass-edge:   rgba(255,255,255,0.14);
-  --glass-fill:   rgba(255,255,255,0.04);
-  --chip:         rgba(255,255,255,0.06);
+  /* Slightly more opaque for legibility on dark backgrounds */
+  --glass:        rgba(255,255,255,0.09);
+  --glass-hi:     rgba(255,255,255,0.14);
+  --glass-edge:   rgba(255,255,255,0.22);
+  --glass-fill:   rgba(255,255,255,0.06);
+  --chip:         rgba(255,255,255,0.10);
 
-  --orb1:         rgba(80,120,220,0.45);
-  --orb2:         rgba(220,80,120,0.40);
-  --orb3:         rgba(220,180,80,0.40);
-  --orb4:         rgba(80,200,160,0.38);
-  --orb5:         rgba(160,100,220,0.40);
+  --orb1:         rgba(80,120,220,0.50);
+  --orb2:         rgba(220,80,120,0.45);
+  --orb3:         rgba(220,180,80,0.45);
+  --orb4:         rgba(80,200,160,0.42);
+  --orb5:         rgba(160,100,220,0.45);
+}
+
+/* Terminal mode — restore phosphor palette so CSS-var tokens work correctly */
+html.theme-terminal {
+  --bg:           0 0 0;
+  --text1:        200 255 216;
+  --text2:        0 255 102;
+  --text3:        74 138 94;
+  --text4:        10 61 31;
+  --hair:         0 255 102;
 }
 
 /* ════════════════════════════════════════════════════════════════════════

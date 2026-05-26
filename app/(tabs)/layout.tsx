@@ -21,7 +21,7 @@ export default function TabsLayout({ children }: { children: React.ReactNode }) 
 
   if (theme === "terminal") {
     return (
-      <div className="min-h-screen bg-bg text-phos-hi tm-mono relative">
+      <div className="min-h-screen bg-black text-phos-hi tm-mono relative">
         <div className="relative h-[47px] z-30">
           <TermStatusBar />
         </div>
