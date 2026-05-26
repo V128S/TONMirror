@@ -239,7 +239,7 @@ export default function PortfolioPage() {
   /* ── Glass UI ──────────────────────────────────────────────────────── */
   return (
     <div>
-      <PageTitle overline={`${strategies?.length ?? 0} mirrors`} title="Vault" />
+      <PageTitle overline={`${strategies?.length ?? 0} mirrors`} title="Portfolio" />
       <div className="px-4 space-y-3.5">
         {/* Wallet Balance */}
         {!isConnected ? (

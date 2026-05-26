@@ -36,6 +36,7 @@ export function useTonBalance(): TonBalanceResult {
   const isConnected = !!address;
 
   // ── Live balance from tonapi.io ────────────────────────────────────────
+  // Works without an API key (public tier, rate-limited). Key adds priority quota.
   const {
     data: liveData,
     isLoading: liveLoading,
@@ -53,9 +54,10 @@ export function useTonBalance(): TonBalanceResult {
       const json: unknown = await res.json();
       return TonApiAccountSchema.parse(json);
     },
-    enabled: isConnected && hasApiKey,
+    enabled: isConnected, // fetch even without API key — falls back to approx on error
     staleTime: 30_000,
     refetchInterval: 60_000,
+    retry: 1,
   });
 
   // ── Approx from activity (fallback) ────────────────────────────────────
@@ -65,26 +67,26 @@ export function useTonBalance(): TonBalanceResult {
     return { tonRaw: null, tonFormatted: null, usdFormatted: null, source: "none", isLoading: false };
   }
 
-  // Live path
-  if (hasApiKey) {
-    if (liveLoading) {
-      return { tonRaw: null, tonFormatted: null, usdFormatted: null, source: "live", isLoading: true };
-    }
-    if (!liveError && liveData) {
-      const nanotons = parseNanotons(liveData.balance);
-      const tons     = Number(nanotons * BigInt(100) / TON_NANO) / 100;
-      return {
-        tonRaw:       nanotons,
-        tonFormatted: `${tons.toFixed(2)} TON`,
-        usdFormatted: null,
-        source:       "live",
-        isLoading:    false,
-      };
-    }
-    // Fall through to approx on API error
+  // Loading state
+  if (liveLoading) {
+    return { tonRaw: null, tonFormatted: null, usdFormatted: null, source: "live", isLoading: true };
   }
 
-  // Cumulative volume of accepted copy trades (not a real balance — labelled accordingly in UI)
+  // Live path — tonapi returned data
+  if (!liveError && liveData) {
+    const nanotons = parseNanotons(liveData.balance);
+    const tons     = Number(nanotons * BigInt(100) / TON_NANO) / 100;
+    return {
+      tonRaw:       nanotons,
+      tonFormatted: `${tons.toFixed(2)} TON`,
+      usdFormatted: null,
+      source:       "live",
+      isLoading:    false,
+    };
+  }
+
+  // Fallback: sum cumulative volume from accepted copy trades
+  // (not a real wallet balance — shown with explicit disclaimer in UI)
   const approxUsd =
     activityData
       ?.filter((e) => e.decision?.outcome === "accepted")
