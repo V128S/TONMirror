@@ -27,7 +27,7 @@ export function GlassTicker({
   const loop = [...items, ...items];
   return (
     <div
-      className="absolute top-[47px] left-0 right-0 h-[30px] z-[25] overflow-hidden"
+      className="fixed top-0 left-0 right-0 h-[30px] z-[25] overflow-hidden"
       style={{
         background: "var(--glass)",
         WebkitBackdropFilter: "blur(20px) saturate(180%)",
