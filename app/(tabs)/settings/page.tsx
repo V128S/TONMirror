@@ -10,6 +10,8 @@ import { useTelegramUser } from "@/components/telegram/TelegramProvider";
 import { useWallet } from "@/hooks/useWallet";
 import { isDemoMode } from "@/lib/env";
 import { useEmitDemoTrade, useResetDemoData } from "@/hooks/useActivity";
+import { useRunWhaleScanner, type ScanResult } from "@/hooks/useWhaleScanner";
+import { formatUsd } from "@/lib/format";
 
 type FeedbackState = { type: "success" | "error"; message: string } | null;
 
@@ -19,6 +21,8 @@ export default function SettingsPage() {
   const emitTrade = useEmitDemoTrade();
   const resetDemo = useResetDemoData();
   const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const scanner    = useRunWhaleScanner();
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
 
   const showFeedback = (type: "success" | "error", message: string) => {
     setFeedback({ type, message });
@@ -186,6 +190,75 @@ export default function SettingsPage() {
             </CardBody>
           </Card>
         )}
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <CardTitle>WHALE·SCANNER</CardTitle>
+              <Badge variant="muted">AUTO</Badge>
+            </div>
+            <p className="text-[10px] text-phos-mid mt-1 tm-mono">
+              discover profitable wallets from STON.fi + TonAPI
+            </p>
+          </CardHeader>
+          <CardBody className="space-y-1.5">
+            {scanResult && (
+              <div className="px-2 py-1.5 border border-phos-border-dim bg-phos/5 text-[10px] tm-mono text-phos-soft space-y-0.5">
+                {scanResult.whales ? (
+                  <>
+                    <p className="text-phos-hi">DRY·RUN — {scanResult.whales.length} whales found</p>
+                    {scanResult.whales.slice(0, 5).map(w => (
+                      <p key={w.address}>
+                        ◈ {w.nickname} score:{w.score.toFixed(2)} vol:{formatUsd(w.volumeUsd30d)}
+                      </p>
+                    ))}
+                    {scanResult.whales.length > 5 && (
+                      <p className="text-phos-mid">…and {scanResult.whales.length - 5} more</p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="text-phos-hi">
+                      ◆ +{scanResult.result.discovered} new · ↻{scanResult.result.updated} updated
+                    </p>
+                    <p>skipped: {scanResult.result.skipped} · {scanResult.result.durationMs}ms</p>
+                  </>
+                )}
+              </div>
+            )}
+            <Button
+              variant="secondary"
+              fullWidth
+              size="sm"
+              disabled={scanner.isPending}
+              onClick={async () => {
+                setScanResult(null);
+                try {
+                  const r = await scanner.mutateAsync({ dryRun: false });
+                  setScanResult(r);
+                  showFeedback("success", `Scanner complete: +${r.result.discovered} new whales`);
+                } catch (err) { showFeedback("error", String(err)); }
+              }}
+            >
+              {scanner.isPending ? "⠿ SCANNING…" : "⊛ RUN·SCAN·NOW"}
+            </Button>
+            <Button
+              variant="ghost"
+              fullWidth
+              size="sm"
+              disabled={scanner.isPending}
+              onClick={async () => {
+                setScanResult(null);
+                try {
+                  const r = await scanner.mutateAsync({ dryRun: true });
+                  setScanResult(r);
+                } catch (err) { showFeedback("error", String(err)); }
+              }}
+            >
+              ▸ DRY·RUN·PREVIEW
+            </Button>
+          </CardBody>
+        </Card>
 
         <div className="text-center text-[9px] text-phos-mid tm-mono pt-2 pb-4">
           tonmirror.sys :: v0.9.4 :: build α
