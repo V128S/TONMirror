@@ -2,29 +2,30 @@
 
 import { GlitchText } from "@/components/fx/GlitchText";
 import { PriceTicker, type TickerItem } from "@/components/fx/PriceTicker";
+import { usePrices } from "@/hooks/usePrices";
 
-// Demo ticker — replace with live data once you have a token-price hook.
-const DEFAULT_TICKER: TickerItem[] = [
-  { sym: "TON",   price: "$2.94",   delta:  1.84 },
-  { sym: "STON",  price: "$0.782",  delta: -0.92 },
-  { sym: "USDT",  price: "$1.000",  delta:  0.01 },
-  { sym: "NOT",   price: "$0.0072", delta:  4.21 },
-  { sym: "DOGS",  price: "$0.0001", delta: -2.10 },
-  { sym: "HMSTR", price: "$0.0044", delta:  0.85 },
-  { sym: "ANON",  price: "$1.420",  delta: -1.34 },
-  { sym: "CATI",  price: "$0.220",  delta:  6.42 },
+// Fallback shown while prices load
+const LOADING_TICKER: TickerItem[] = [
+  { sym: "TON",   price: "…", delta: 0 },
+  { sym: "STON",  price: "…", delta: 0 },
+  { sym: "USDT",  price: "…", delta: 0 },
+  { sym: "NOT",   price: "…", delta: 0 },
+  { sym: "DOGS",  price: "…", delta: 0 },
+  { sym: "HMSTR", price: "…", delta: 0 },
+  { sym: "CATI",  price: "…", delta: 0 },
 ];
 
 /** Page header: ticker rail + glitch title + LIVE indicator. */
 export function TermHeader({
   title,
   sub,
-  ticker = DEFAULT_TICKER,
 }: {
   title: string;
   sub: string;
-  ticker?: TickerItem[];
 }) {
+  const { data: prices } = usePrices();
+  const ticker: TickerItem[] = prices ?? LOADING_TICKER;
+
   return (
     <div className="relative z-20">
       <div className="border-b border-phos-border-dim bg-phos/[0.025] py-[5px]">
