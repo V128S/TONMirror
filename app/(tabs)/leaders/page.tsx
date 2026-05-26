@@ -6,7 +6,7 @@ import { Badge, RiskBadge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { TermHeader } from "@/components/terminal/TermHeader";
 import { Sparkline } from "@/components/fx/Sparkline";
-import { formatPercent } from "@/lib/format";
+import { formatPercent, formatUsd } from "@/lib/format";
 import { useLeaders } from "@/hooks/useLeaders";
 
 export default function LeadersPage() {
@@ -67,13 +67,18 @@ export default function LeadersPage() {
                 <CardHeader>
                   <div className="flex flex-row items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <CardTitle>{leader.nickname}</CardTitle>
+                      <div className="flex items-center gap-1.5">
+                        <CardTitle>{leader.nickname}</CardTitle>
+                        {leader.sourceType === "auto_discovered" && (
+                          <Badge variant="success" className="text-[8px] px-1 py-0">AUTO</Badge>
+                        )}
+                      </div>
                       <div className="flex flex-wrap gap-1 mt-1.5">
-                        {leader.tags.map((tag) => (
-                          <Badge key={tag} variant="muted">
-                            {tag}
-                          </Badge>
-                        ))}
+                        {leader.tags
+                          .filter(t => t !== "auto")
+                          .map((tag) => (
+                            <Badge key={tag} variant="muted">{tag}</Badge>
+                          ))}
                       </div>
                     </div>
                     <RiskBadge score={leader.riskScore} />
@@ -89,15 +94,27 @@ export default function LeadersPage() {
                       </div>
                     </div>
                     <div>
-                      <div className="text-[9px] text-phos-mid tracking-[0.15em]">ACT</div>
+                      <div className="text-[9px] text-phos-mid tracking-[0.15em]">
+                        {leader.volumeUsd30d != null ? "VOL·30D" : "ACT"}
+                      </div>
                       <div className="tm-disp tm-glow text-phos-hi text-[15px] mt-0.5">
-                        {formatPercent(leader.activityScore)}
+                        {leader.volumeUsd30d != null
+                          ? formatUsd(leader.volumeUsd30d)
+                          : formatPercent(leader.activityScore)}
                       </div>
                     </div>
                     <div className="flex justify-end">
                       <Sparkline data={spark} width={92} height={28} fill />
                     </div>
                   </div>
+                  {leader.sourceType === "auto_discovered" && leader.discoveryScore != null && (
+                    <div className="mt-2 pt-2 border-t border-dashed border-phos-border-dim flex justify-between text-[9px] tm-mono text-phos-mid">
+                      <span>SCORE <span className="text-phos-soft">{leader.discoveryScore.toFixed(2)}</span></span>
+                      {leader.tradeCount30d != null && (
+                        <span>{leader.tradeCount30d} TRADES·30D</span>
+                      )}
+                    </div>
+                  )}
                 </CardBody>
 
                 <div className="flex items-center justify-between pt-2 mt-2 border-t border-dashed border-phos-border-dim">

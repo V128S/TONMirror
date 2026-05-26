@@ -16,6 +16,11 @@ export interface Leader {
   isActive:      boolean;
   isFollowing:   boolean;
   createdAt:     string;
+  sourceType:       string;
+  discoveryScore:   number | null;
+  volumeUsd30d:     number | null;
+  tradeCount30d:    number | null;
+  lastDiscoveredAt: string | null;
 }
 
 // ─── Query keys ───────────────────────────────────────────────────────────────
