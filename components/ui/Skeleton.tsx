@@ -1,31 +1,15 @@
 "use client";
 
-import { type HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
-export function Skeleton({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+/** Skeleton — terminal-themed dashed loading placeholder. */
+export function Skeleton({ className }: { className?: string }) {
   return (
     <div
-      className={cn("animate-pulse rounded-xl bg-surface-3", className)}
-      {...props}
+      className={cn(
+        "bg-phos/5 border border-phos-border-dim tm-flicker",
+        className,
+      )}
     />
-  );
-}
-
-/** Full card skeleton */
-export function CardSkeleton() {
-  return (
-    <div className="rounded-2xl border border-surface-border bg-surface-1 p-4 space-y-3">
-      <div className="flex items-center gap-3">
-        <Skeleton className="size-10 rounded-full" />
-        <div className="flex-1 space-y-1.5">
-          <Skeleton className="h-3.5 w-32" />
-          <Skeleton className="h-3 w-20" />
-        </div>
-        <Skeleton className="h-5 w-14 rounded-full" />
-      </div>
-      <Skeleton className="h-3 w-full" />
-      <Skeleton className="h-3 w-4/5" />
-    </div>
   );
 }

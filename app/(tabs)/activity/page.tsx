@@ -1,118 +1,118 @@
 "use client";
 
 import { useState } from "react";
-import { Card } from "@/components/ui/Card";
 import { Badge, DecisionBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { TermHeader } from "@/components/terminal/TermHeader";
+import { BlinkCaret } from "@/components/fx/BlinkCaret";
 import { QuoteCard } from "@/components/activity/QuoteCard";
 import { formatAmount, formatRelativeTime, formatUsd } from "@/lib/format";
 import { useActivity } from "@/hooks/useActivity";
 import type { ActivityEvent } from "@/hooks/useActivity";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+type Filter = "ALL" | "ACCEPT" | "REVIEW" | "REJECT";
 
-function ExecutionStatusBadge({ status }: { status: string }) {
-  const map: Record<string, { variant: "success" | "warning" | "danger" | "muted" | "info"; label: string }> = {
-    pending:   { variant: "warning", label: "Pending"   },
-    quoted:    { variant: "info",    label: "Quoted"    },
-    ready:     { variant: "info",    label: "Ready"     },
-    submitted: { variant: "info",    label: "Sent"      },
-    confirmed: { variant: "success", label: "Confirmed" },
-    failed:    { variant: "danger",  label: "Failed"    },
-    skipped:   { variant: "muted",   label: "Skipped"   },
+function ExecStatusGlyph({ status }: { status: string }) {
+  const map: Record<string, { c: string; l: string }> = {
+    pending:   { c: "#ffd500", l: "PEND" },
+    quoted:    { c: "#00ffaa", l: "QUOTE" },
+    ready:     { c: "#00ffaa", l: "READY" },
+    submitted: { c: "#00ffaa", l: "SUBMIT" },
+    confirmed: { c: "#c8ffd8", l: "OK" },
+    failed:    { c: "#ff3050", l: "FAIL" },
+    skipped:   { c: "#4a8a5e", l: "SKIP" },
   };
-  const { variant, label } = map[status] ?? { variant: "muted" as const, label: status };
-  return <Badge variant={variant}>{label}</Badge>;
-}
-
-/** Returns true if this event has a pending execution the user can act on */
-function canGetQuote(event: ActivityEvent): boolean {
+  const m = map[status] ?? { c: "#4a8a5e", l: status.toUpperCase() };
   return (
-    event.execution !== null &&
-    (event.execution.status === "pending" || event.execution.status === "quoted") &&
-    event.decision !== null &&
-    event.decision.outcome !== "rejected"
+    <span className="tm-mono text-[9px] tracking-[0.15em]" style={{ color: m.c }}>
+      EXEC:{m.l}
+    </span>
   );
 }
 
-// ─── Event row ────────────────────────────────────────────────────────────────
+function canGetQuote(e: ActivityEvent) {
+  return (
+    e.execution !== null &&
+    (e.execution.status === "pending" || e.execution.status === "quoted") &&
+    e.decision !== null &&
+    e.decision.outcome !== "rejected"
+  );
+}
+
+function decTag(outcome: string) {
+  return outcome === "accepted"
+    ? { c: "#c8ffd8", g: "◆", l: "ACCEPT" }
+    : outcome === "review"
+    ? { c: "#ffd500", g: "◇", l: "REVIEW" }
+    : { c: "#ff3050", g: "✕", l: "REJECT" };
+}
 
 function EventRow({ event }: { event: ActivityEvent }) {
   const [showQuote, setShowQuote] = useState(false);
-  const showQuoteButton = canGetQuote(event);
+  const d = event.decision ? decTag(event.decision.outcome) : { c: "#4a8a5e", g: "·", l: "NONE" };
+  const canQuote = canGetQuote(event);
 
   return (
     <div>
-      <Card elevated>
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            {/* Leader name */}
-            <p className="text-xs text-text-muted">{event.leader.nickname}</p>
-
-            {/* Trade direction */}
-            <p className="text-sm font-semibold text-text-primary mt-0.5">
-              {formatAmount(event.soldAmountDecimal)}{" "}
-              <span className="text-text-secondary">{event.soldToken}</span>{" "}
-              <span className="text-text-muted font-normal">→</span>{" "}
-              <span className="text-text-secondary">{event.boughtToken}</span>
-            </p>
-
-            {/* USD estimate */}
+      <div className="border border-phos-border-dim bg-bg-panel p-2.5">
+        <div
+          className="grid items-center gap-2"
+          style={{ gridTemplateColumns: "52px 14px 1fr 70px" }}
+        >
+          <span className="text-phos-mid text-[10px] tm-mono">
+            {new Date(event.timestamp).toLocaleTimeString("en-GB", { hour12: false })}
+          </span>
+          <span className="text-[13px] font-bold" style={{ color: d.c }}>
+            {d.g}
+          </span>
+          <div>
+            <div className="text-[9px] text-phos-soft tracking-[0.08em]">{event.leader.nickname}</div>
+            <div className="text-[11px] text-phos-hi tm-mono mt-0.5">
+              {formatAmount(event.soldAmountDecimal)} {event.soldToken}{" "}
+              <span className="text-phos-mid">→</span> {event.boughtToken}
+            </div>
             {event.usdEstimate != null && (
-              <p className="text-xs text-text-muted mt-0.5">
-                ≈ {formatUsd(event.usdEstimate)}
-              </p>
-            )}
-
-            {/* Timestamp + source */}
-            <p className="text-xs text-text-muted mt-1">
-              {formatRelativeTime(event.timestamp)}{" "}
-              {event.sourceProvider === "mock" && (
-                <span className="text-ton-400/60">• demo</span>
-              )}
-            </p>
-
-            {/* Risk flags */}
-            {event.decision && event.decision.riskFlags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-1.5">
-                {event.decision.riskFlags.map((flag) => (
-                  <Badge key={flag} variant="warning" className="text-[10px] px-1.5 py-0">
-                    {flag.replace(/_/g, " ")}
-                  </Badge>
-                ))}
-              </div>
-            )}
-
-            {/* Get Quote button */}
-            {showQuoteButton && (
-              <div className="mt-2">
-                <Button
-                  variant={showQuote ? "ghost" : "secondary"}
-                  size="sm"
-                  onClick={() => setShowQuote((p) => !p)}
-                >
-                  {showQuote ? "Hide Quote" : "Get Quote →"}
-                </Button>
+              <div className="text-[9px] text-phos-mid mt-0.5 tm-mono">
+                ≈ {formatUsd(event.usdEstimate)} · {formatRelativeTime(event.timestamp)}
               </div>
             )}
           </div>
-
-          {/* Right column: decision + execution status */}
-          <div className="flex flex-col items-end gap-1.5 shrink-0">
-            {event.decision ? (
-              <DecisionBadge decision={event.decision.outcome} />
-            ) : (
-              <Badge variant="muted">No decision</Badge>
-            )}
+          <div className="text-right">
+            <DecisionBadge decision={event.decision?.outcome ?? "none"} />
             {event.execution && (
-              <ExecutionStatusBadge status={event.execution.status} />
+              <div className="mt-1">
+                <ExecStatusGlyph status={event.execution.status} />
+              </div>
             )}
           </div>
         </div>
-      </Card>
 
-      {/* Inline QuoteCard — expands below the event row */}
+        {/* risk flags */}
+        {event.decision && event.decision.riskFlags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2 pl-[68px]">
+            {event.decision.riskFlags.map((f) => (
+              <Badge key={f} variant="warning">
+                ⚠ {f.replace(/_/g, " ")}
+              </Badge>
+            ))}
+          </div>
+        )}
+
+        {/* quote button */}
+        {canQuote && (
+          <div className="mt-2 pl-[68px]">
+            <Button
+              variant={showQuote ? "ghost" : "secondary"}
+              size="sm"
+              onClick={() => setShowQuote((p) => !p)}
+            >
+              {showQuote ? "▴ HIDE QUOTE" : "▸ GET QUOTE"}
+            </Button>
+          </div>
+        )}
+      </div>
+
       {showQuote && event.execution && event.decision && (
         <QuoteCard
           executionId={event.execution.id}
@@ -127,67 +127,82 @@ function EventRow({ event }: { event: ActivityEvent }) {
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function ActivityPage() {
   const { data: events, isLoading, isError } = useActivity({ limit: 50 });
+  const [filter, setFilter] = useState<Filter>("ALL");
 
-  if (isLoading) {
-    return (
-      <div className="px-4 pt-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-text-primary">Activity</h1>
-          <Skeleton className="w-16 h-5 rounded-full" />
-        </div>
-        {[1, 2, 3, 4].map((i) => (
-          <Card key={i} elevated>
-            <Skeleton className="w-24 h-3 mb-2" />
-            <Skeleton className="w-full h-5" />
-            <Skeleton className="w-20 h-3 mt-2" />
-          </Card>
-        ))}
-      </div>
-    );
-  }
+  const filterMap: Record<Filter, string | null> = {
+    ALL: null,
+    ACCEPT: "accepted",
+    REVIEW: "review",
+    REJECT: "rejected",
+  };
 
-  if (isError) {
-    return (
-      <div className="px-4 pt-6 flex flex-col items-center justify-center py-20 text-center">
-        <p className="text-4xl mb-3">⚠️</p>
-        <p className="text-text-secondary font-medium">Failed to load activity</p>
-        <p className="text-text-muted text-sm mt-1">Check database connection.</p>
-      </div>
-    );
-  }
-
-  if (!events || events.length === 0) {
-    return (
-      <div className="px-4 pt-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-text-primary">Activity</h1>
-          <Badge variant="muted">0 events</Badge>
-        </div>
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <p className="text-4xl mb-3">⚡️</p>
-          <p className="text-text-secondary font-medium">No activity yet</p>
-          <p className="text-text-muted text-sm mt-1">
-            Follow leaders or use the demo panel to emit trades.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const filtered =
+    events?.filter((e) => {
+      const want = filterMap[filter];
+      if (!want) return true;
+      return e.decision?.outcome === want;
+    }) ?? [];
 
   return (
-    <div className="px-4 pt-6 space-y-4 pb-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-text-primary">Activity</h1>
-        <Badge variant="muted">{events.length} events</Badge>
-      </div>
-      <div className="space-y-3">
-        {events.map((event) => (
-          <EventRow key={event.id} event={event} />
-        ))}
+    <div>
+      <TermHeader title="TAPE·LOG" sub="copy · activity · live" />
+
+      <div className="px-3 pt-2 space-y-2">
+        {/* Filter row */}
+        <div className="flex gap-1">
+          {(["ALL", "ACCEPT", "REVIEW", "REJECT"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`flex-1 py-1.5 text-[9px] tracking-[0.15em] font-bold tm-mono ${
+                filter === f
+                  ? "border border-phos bg-phos/10 text-phos-hi"
+                  : "border border-phos-border-dim text-phos-mid"
+              }`}
+            >
+              ▸ {f}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex justify-between text-[9px] text-phos-mid tm-mono px-1">
+          <span>{filtered.length} EVENTS</span>
+          <span>
+            <span className="tm-blink text-phos">●</span> STREAMING
+          </span>
+        </div>
+
+        {isLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-20" />
+            ))}
+          </div>
+        ) : isError ? (
+          <div className="text-center py-12">
+            <p className="tm-disp text-danger">▲ ERR_DB ▲</p>
+            <p className="text-phos-mid text-sm mt-1">check database connection.</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="tm-disp text-phos-mid">▢ NO·EVENTS ▢</p>
+            <p className="text-phos-mid text-[10px] mt-1 tm-mono">
+              follow leaders or emit a demo trade in settings.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filtered.map((e) => (
+              <EventRow key={e.id} event={e} />
+            ))}
+          </div>
+        )}
+
+        <div className="text-center text-[9px] text-phos-mid tm-mono pt-2">
+          ─── END · OF · TAPE ··· <BlinkCaret /> ───
+        </div>
       </div>
     </div>
   );

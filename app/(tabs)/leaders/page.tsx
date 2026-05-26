@@ -4,108 +4,118 @@ import Link from "next/link";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge, RiskBadge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { TermHeader } from "@/components/terminal/TermHeader";
+import { Sparkline } from "@/components/fx/Sparkline";
 import { formatPercent } from "@/lib/format";
 import { useLeaders } from "@/hooks/useLeaders";
 
 export default function LeadersPage() {
   const { data: leaders, isLoading, isError } = useLeaders();
 
-  // ── Loading state ────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="px-4 pt-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-text-primary">Leaders</h1>
-          <Skeleton className="w-16 h-5 rounded-full" />
+      <div>
+        <TermHeader title="LEADERS" sub="discover · wallets" />
+        <div className="px-4 pt-2 space-y-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="space-y-3">
+              <Skeleton className="w-40 h-5" />
+              <Skeleton className="w-full h-12" />
+            </Card>
+          ))}
         </div>
-        {[1, 2, 3].map((i) => (
-          <Card key={i} className="space-y-3">
-            <Skeleton className="w-40 h-5" />
-            <Skeleton className="w-full h-12" />
-          </Card>
-        ))}
       </div>
     );
   }
 
-  // ── Error state ──────────────────────────────────────────────────────────────
   if (isError || !leaders) {
     return (
-      <div className="px-4 pt-6 flex flex-col items-center justify-center py-20 text-center">
-        <p className="text-4xl mb-3">⚠️</p>
-        <p className="text-text-secondary font-medium">Failed to load leaders</p>
-        <p className="text-text-muted text-sm mt-1">Check your database connection and try again.</p>
+      <div>
+        <TermHeader title="LEADERS" sub="discover · wallets" />
+        <div className="px-4 pt-12 text-center">
+          <p className="tm-disp text-phos-hi text-lg">▲ ERR_DB ▲</p>
+          <p className="text-phos-mid text-sm mt-1">database connection refused.</p>
+        </div>
       </div>
     );
   }
 
-  // ── Empty state ──────────────────────────────────────────────────────────────
   if (leaders.length === 0) {
     return (
-      <div className="px-4 pt-6 flex flex-col items-center justify-center py-20 text-center">
-        <p className="text-4xl mb-3">🔍</p>
-        <p className="text-text-secondary font-medium">No leaders found</p>
-        <p className="text-text-muted text-sm mt-1">Run the seed script to add demo leaders.</p>
+      <div>
+        <TermHeader title="LEADERS" sub="discover · wallets" />
+        <div className="px-4 pt-12 text-center">
+          <p className="tm-disp text-phos-hi text-lg">▢ NO·LEADERS ▢</p>
+          <p className="text-phos-mid text-sm mt-1">run the seed script.</p>
+        </div>
       </div>
     );
   }
 
-  // ── Data ─────────────────────────────────────────────────────────────────────
   return (
-    <div className="px-4 pt-6 space-y-4 pb-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-text-primary">Leaders</h1>
-        <Badge variant="muted">{leaders.length} wallets</Badge>
-      </div>
-
-      <div className="space-y-3">
-        {leaders.map((leader) => (
-          <Link key={leader.id} href={`/leaders/${leader.id}`} className="block">
-            <Card className="space-y-3 active:scale-[0.99] transition-transform">
-              <CardHeader className="mb-0 flex flex-row items-start justify-between">
-                <div>
-                  <CardTitle>{leader.nickname}</CardTitle>
-                  <div className="flex flex-wrap gap-1 mt-1.5">
-                    {leader.tags.map((tag) => (
-                      <Badge key={tag} variant="muted">{tag}</Badge>
-                    ))}
+    <div>
+      <TermHeader title="LEADERS" sub={`${leaders.length} wallets · discover`} />
+      <div className="px-4 pt-2 space-y-3">
+        {leaders.map((leader) => {
+          // synthetic spark — replace with real history when you store it
+          const spark = Array.from({ length: 16 }).map((_, i) =>
+            40 + i * 2 + Math.sin(i * 0.7 + leader.riskScore) * 8 + leader.activityScore * 10,
+          );
+          return (
+            <Link key={leader.id} href={`/leaders/${leader.id}`} className="block">
+              <Card className="active:bg-phos/5 transition-colors">
+                <CardHeader>
+                  <div className="flex flex-row items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <CardTitle>{leader.nickname}</CardTitle>
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {leader.tags.map((tag) => (
+                          <Badge key={tag} variant="muted">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <RiskBadge score={leader.riskScore} />
                   </div>
+                </CardHeader>
+
+                <CardBody>
+                  <div className="grid grid-cols-3 gap-2 items-end">
+                    <div>
+                      <div className="text-[9px] text-phos-mid tracking-[0.15em]">WIN</div>
+                      <div className="tm-disp tm-glow text-phos-hi text-[15px] mt-0.5">
+                        {formatPercent(leader.winRateApprox)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[9px] text-phos-mid tracking-[0.15em]">ACT</div>
+                      <div className="tm-disp tm-glow text-phos-hi text-[15px] mt-0.5">
+                        {formatPercent(leader.activityScore)}
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <Sparkline data={spark} width={92} height={28} fill />
+                    </div>
+                  </div>
+                </CardBody>
+
+                <div className="flex items-center justify-between pt-2 mt-2 border-t border-dashed border-phos-border-dim">
+                  {leader.isFollowing ? (
+                    <Badge variant="success">FOLLOWING ✓</Badge>
+                  ) : (
+                    <Badge variant="muted">▸ TAP TO FOLLOW</Badge>
+                  )}
+                  {leader.notes && (
+                    <span className="text-phos-mid text-[10px] truncate max-w-[140px] tm-mono">
+                      {leader.notes}
+                    </span>
+                  )}
                 </div>
-                <RiskBadge score={leader.riskScore} />
-              </CardHeader>
-
-              <CardBody>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <span className="text-text-muted">Win rate</span>
-                    <p className="text-text-primary font-semibold mt-0.5">
-                      {formatPercent(leader.winRateApprox)}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-text-muted">Activity</span>
-                    <p className="text-text-primary font-semibold mt-0.5">
-                      {formatPercent(leader.activityScore)}
-                    </p>
-                  </div>
-                </div>
-              </CardBody>
-
-              <div className="flex items-center justify-between pt-1">
-                {leader.isFollowing ? (
-                  <Badge variant="success">Following ✓</Badge>
-                ) : (
-                  <Badge variant="muted">Tap to follow →</Badge>
-                )}
-                {leader.notes && (
-                  <span className="text-text-muted text-xs truncate max-w-[140px]">
-                    {leader.notes}
-                  </span>
-                )}
-              </div>
-            </Card>
-          </Link>
-        ))}
+              </Card>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

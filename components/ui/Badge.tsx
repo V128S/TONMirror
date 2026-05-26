@@ -1,56 +1,53 @@
 "use client";
 
-import { type HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
+import type { HTMLAttributes } from "react";
 
-export type BadgeVariant = "default" | "success" | "warning" | "danger" | "info" | "muted";
+type Variant = "muted" | "info" | "success" | "warning" | "danger";
 
-interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  variant?: BadgeVariant;
-}
-
-const variantClasses: Record<BadgeVariant, string> = {
-  default: "bg-surface-3 text-text-primary",
-  success: "bg-green-500/15 text-green-400",
-  warning: "bg-yellow-500/15 text-yellow-400",
-  danger:  "bg-red-500/15   text-red-400",
-  info:    "bg-ton-500/15   text-ton-400",
-  muted:   "bg-surface-2    text-text-muted",
+const VARIANTS: Record<Variant, string> = {
+  muted:   "border-phos-border-dim text-phos-mid",
+  info:    "border-phos-border-dim text-phos-soft",
+  success: "border-phos text-phos-hi",
+  warning: "border-warn/55 text-warn",
+  danger:  "border-danger/55 text-danger",
 };
 
-export function Badge({ variant = "default", className, ...props }: BadgeProps) {
+export function Badge({
+  variant = "muted",
+  className,
+  children,
+  ...rest
+}: HTMLAttributes<HTMLSpanElement> & { variant?: Variant }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
-        variantClasses[variant],
+        "tm-mono inline-block px-1.5 py-0.5 text-[9px] tracking-[0.12em] border uppercase",
+        VARIANTS[variant],
         className,
       )}
-      {...props}
-    />
+      {...rest}
+    >
+      {children}
+    </span>
   );
 }
 
-/** Risk score badge: 1-3 low, 4-6 medium, 7-10 high */
-export function RiskBadge({ score }: { score: number }) {
-  const variant =
-    score <= 3 ? "success" :
-    score <= 6 ? "warning" :
-    "danger";
-  const label =
-    score <= 3 ? "Low risk" :
-    score <= 6 ? "Med risk" :
-    "High risk";
-  return <Badge variant={variant}>{label}</Badge>;
+export function DecisionBadge({ decision }: { decision: string }) {
+  const map: Record<string, { v: Variant; glyph: string; label: string }> = {
+    accepted: { v: "success", glyph: "◆", label: "ACCEPT" },
+    review:   { v: "warning", glyph: "◇", label: "REVIEW" },
+    rejected: { v: "danger",  glyph: "✕", label: "REJECT" },
+  };
+  const m = map[decision] ?? { v: "muted" as const, glyph: "·", label: decision };
+  return (
+    <Badge variant={m.v}>
+      {m.glyph} {m.label}
+    </Badge>
+  );
 }
 
-/** Decision badge */
-export function DecisionBadge({ decision }: { decision: "accepted" | "rejected" | "manual_review" }) {
-  const map = {
-    accepted:      { variant: "success" as const, label: "Accepted" },
-    rejected:      { variant: "danger"  as const, label: "Rejected" },
-    manual_review: { variant: "warning" as const, label: "Review" },
-  };
-  const { variant, label } = map[decision];
-  return <Badge variant={variant}>{label}</Badge>;
+export function RiskBadge({ score }: { score: number }) {
+  const v: Variant = score <= 3 ? "success" : score <= 6 ? "warning" : "danger";
+  return <Badge variant={v}>RISK {score.toFixed(1)}/10</Badge>;
 }

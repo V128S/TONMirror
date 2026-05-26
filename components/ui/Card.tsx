@@ -1,35 +1,55 @@
 "use client";
 
-import { type HTMLAttributes, forwardRef } from "react";
 import { cn } from "@/lib/utils";
+import type { HTMLAttributes, ReactNode } from "react";
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   elevated?: boolean;
+  children?: ReactNode;
 }
 
-export const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ elevated, className, ...props }, ref) => (
+/** Terminal panel: thin phosphor border on bg.panel. `elevated` adds inset glow. */
+export function Card({ elevated, className, children, ...rest }: CardProps) {
+  return (
     <div
-      ref={ref}
       className={cn(
-        "rounded-2xl border border-surface-border p-4",
-        elevated ? "bg-surface-2" : "bg-surface-1",
+        "border bg-bg-panel p-3",
+        elevated ? "border-phos-border shadow-panel-inset" : "border-phos-border-dim",
         className,
       )}
-      {...props}
-    />
-  ),
-);
-Card.displayName = "Card";
-
-export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("mb-3", className)} {...props} />;
+      {...rest}
+    >
+      {children}
+    </div>
+  );
 }
 
-export function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn("text-base font-semibold text-text-primary", className)} {...props} />;
+export function CardHeader({ className, children, ...rest }: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn("mb-2", className)} {...rest}>
+      {children}
+    </div>
+  );
 }
 
-export function CardBody({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("text-sm text-text-secondary", className)} {...props} />;
+export function CardTitle({ className, children, ...rest }: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        "tm-disp text-phos-hi text-[12px] tracking-[0.18em] uppercase tm-glow-soft",
+        className,
+      )}
+      {...rest}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function CardBody({ className, children, ...rest }: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn("", className)} {...rest}>
+      {children}
+    </div>
+  );
 }

@@ -7,6 +7,12 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge, RiskBadge, DecisionBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { TermHeader } from "@/components/terminal/TermHeader";
+import { MirrorBar } from "@/components/terminal/MirrorBar";
+import { CornerBox } from "@/components/terminal/CornerBox";
+import { Sparkline } from "@/components/fx/Sparkline";
+import { RiskMeter } from "@/components/fx/RiskMeter";
+import { BlinkCaret } from "@/components/fx/BlinkCaret";
 import {
   formatUsd,
   formatPercent,
@@ -18,270 +24,248 @@ import { useLeader, useFollowLeader } from "@/hooks/useLeaders";
 import { useStrategies, usePauseStrategy, useDeleteStrategy } from "@/hooks/useStrategies";
 import { useActivity } from "@/hooks/useActivity";
 
-// ─── Strategy form state ──────────────────────────────────────────────────────
-
 interface FormValues {
-  mode:                 "fixed_amount" | "percent_of_leader";
-  fixedAmount:          number;
-  percentOfLeader:      number;
-  maxTradeSize:         number | "";
-  slippageBps:          number;
+  mode: "fixed_amount" | "percent_of_leader";
+  fixedAmount: number;
+  percentOfLeader: number;
+  slippageBps: number;
   requireManualConfirm: boolean;
-  copySells:            boolean;
+  copySells: boolean;
 }
 
 const DEFAULT_FORM: FormValues = {
-  mode:                 "fixed_amount",
-  fixedAmount:          10,
-  percentOfLeader:      10,
-  maxTradeSize:         "",
-  slippageBps:          100,
+  mode: "fixed_amount",
+  fixedAmount: 40,
+  percentOfLeader: 10,
+  slippageBps: 100,
   requireManualConfirm: true,
-  copySells:            false,
+  copySells: false,
 };
 
-// ─── StrategyForm ─────────────────────────────────────────────────────────────
-
-function StrategyForm({
-  leaderId,
-  onSuccess,
+function SegPick({
+  on,
+  children,
+  onClick,
+  small,
 }: {
-  leaderId: string;
-  onSuccess: () => void;
+  on?: boolean;
+  children: React.ReactNode;
+  onClick?: () => void;
+  small?: boolean;
 }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`tm-mono font-bold tracking-[0.1em] text-center transition-colors ${
+        small ? "py-1.5 text-[10px]" : "py-2 text-[11px]"
+      } ${
+        on
+          ? "border border-phos bg-phos/10 text-phos-hi"
+          : "border border-phos-border-dim text-phos-mid hover:text-phos-soft"
+      }`}
+      style={on ? { boxShadow: "inset 0 0 8px rgba(0,255,102,0.2)" } : undefined}
+    >
+      {on && "▸ "}{children}{on && " ◂"}
+    </button>
+  );
+}
+
+function ToggleRow({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex justify-between items-center py-2 border-t border-dashed border-phos-border-dim">
+      <div>
+        <p className="text-[11px] text-phos-soft tracking-[0.1em] tm-mono">▸ {label}</p>
+        <p className="text-[9px] text-phos-mid mt-0.5">{description}</p>
+      </div>
+      <button
+        onClick={() => onChange(!checked)}
+        className="tm-mono text-[10px] tracking-[0.2em]"
+        style={{ color: checked ? "#c8ffd8" : "#4a8a5e" }}
+      >
+        {checked ? "[ ◼ ON ]" : "[ ◻ OFF ]"}
+      </button>
+    </div>
+  );
+}
+
+function StrategyForm({ leaderId, onSuccess }: { leaderId: string; onSuccess: () => void }) {
   const [form, setForm] = useState<FormValues>(DEFAULT_FORM);
   const [error, setError] = useState<string | null>(null);
   const follow = useFollowLeader();
 
   const set = <K extends keyof FormValues>(k: K, v: FormValues[K]) =>
-    setForm((prev) => ({ ...prev, [k]: v }));
+    setForm((p) => ({ ...p, [k]: v }));
 
-  const handleSubmit = async () => {
+  const submit = async () => {
     setError(null);
     try {
       await follow.mutateAsync({
-        leaderWalletId:       leaderId,
-        mode:                 form.mode,
-        fixedAmount:          form.mode === "fixed_amount" ? form.fixedAmount : undefined,
+        leaderWalletId: leaderId,
+        mode: form.mode,
+        fixedAmount: form.mode === "fixed_amount" ? form.fixedAmount : undefined,
         requireManualConfirm: form.requireManualConfirm,
       });
       onSuccess();
-    } catch (err) {
-      setError(String(err));
+    } catch (e) {
+      setError(String(e));
     }
   };
 
   return (
-    <div className="space-y-4">
-      {/* Mode */}
-      <div className="grid grid-cols-2 gap-2">
-        {(["fixed_amount", "percent_of_leader"] as const).map((m) => (
-          <button
-            key={m}
-            onClick={() => set("mode", m)}
-            className={`rounded-xl py-2.5 text-sm font-medium transition-colors ${
-              form.mode === m
-                ? "bg-ton-500 text-white"
-                : "bg-surface-card text-text-secondary border border-surface-border"
-            }`}
-          >
-            {m === "fixed_amount" ? "Fixed amount" : "% of leader"}
-          </button>
-        ))}
+    <div className="space-y-3.5">
+      <div className="grid grid-cols-2 gap-1.5">
+        <SegPick on={form.mode === "fixed_amount"} onClick={() => set("mode", "fixed_amount")}>
+          FIXED·USDT
+        </SegPick>
+        <SegPick on={form.mode === "percent_of_leader"} onClick={() => set("mode", "percent_of_leader")}>
+          %·OF·LEAD
+        </SegPick>
       </div>
 
-      {/* Amount */}
-      {form.mode === "fixed_amount" ? (
-        <div>
-          <label className="text-xs text-text-muted block mb-1">Amount per trade (USDT)</label>
-          <input
-            type="number"
-            min={1}
-            value={form.fixedAmount}
-            onChange={(e) => set("fixedAmount", Number(e.target.value))}
-            className="w-full bg-surface-card border border-surface-border rounded-xl px-3 py-2
-                       text-sm text-text-primary focus:outline-none focus:border-ton-400"
-          />
-        </div>
-      ) : (
-        <div>
-          <label className="text-xs text-text-muted block mb-1">% of leader trade</label>
-          <input
-            type="number"
-            min={1}
-            max={100}
-            value={form.percentOfLeader}
-            onChange={(e) => set("percentOfLeader", Number(e.target.value))}
-            className="w-full bg-surface-card border border-surface-border rounded-xl px-3 py-2
-                       text-sm text-text-primary focus:outline-none focus:border-ton-400"
-          />
-        </div>
-      )}
-
-      {/* Slippage */}
       <div>
-        <label className="text-xs text-text-muted block mb-1">Slippage tolerance</label>
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="text-[9px] text-phos-mid tracking-[0.15em] mb-1">
+          {form.mode === "fixed_amount" ? "AMOUNT · PER · TRADE" : "% OF LEADER TRADE"}
+        </div>
+        <div className="border border-phos px-3 py-2 flex justify-between items-center tm-mono">
+          <span className="text-[15px] text-phos-hi font-bold">
+            <BlinkCaret />
+            {form.mode === "fixed_amount" ? `$${form.fixedAmount}.00` : `${form.percentOfLeader}%`}
+          </span>
+          <input
+            type="number"
+            min={1}
+            max={form.mode === "percent_of_leader" ? 100 : 9999}
+            value={form.mode === "fixed_amount" ? form.fixedAmount : form.percentOfLeader}
+            onChange={(e) =>
+              form.mode === "fixed_amount"
+                ? set("fixedAmount", Number(e.target.value))
+                : set("percentOfLeader", Number(e.target.value))
+            }
+            className="w-20 bg-transparent text-right text-phos-soft text-[11px] outline-none border-l border-phos-border-dim pl-2"
+          />
+        </div>
+      </div>
+
+      <div>
+        <div className="text-[9px] text-phos-mid tracking-[0.15em] mb-1">SLIPPAGE</div>
+        <div className="grid grid-cols-4 gap-1">
           {[50, 100, 200, 300].map((bps) => (
-            <button
+            <SegPick
               key={bps}
+              small
+              on={form.slippageBps === bps}
               onClick={() => set("slippageBps", bps)}
-              className={`rounded-lg py-1.5 text-xs font-medium transition-colors ${
-                form.slippageBps === bps
-                  ? "bg-ton-500 text-white"
-                  : "bg-surface-card text-text-secondary border border-surface-border"
-              }`}
             >
               {bps / 100}%
-            </button>
+            </SegPick>
           ))}
         </div>
       </div>
 
-      {/* Toggles */}
-      <div className="space-y-3">
-        <Toggle
-          label="Require manual confirmation"
-          description="Review each quote before signing"
+      <div>
+        <ToggleRow
+          label="REQUIRE·MANUAL·SIGN"
+          description="review every quote before signing"
           checked={form.requireManualConfirm}
           onChange={(v) => set("requireManualConfirm", v)}
         />
-        <Toggle
-          label="Copy sell trades"
-          description="Mirror sell orders from the leader"
+        <ToggleRow
+          label="COPY·SELLS"
+          description="mirror exit orders from leader"
           checked={form.copySells}
           onChange={(v) => set("copySells", v)}
         />
       </div>
 
       {error && (
-        <p className="text-xs text-danger bg-danger/10 rounded-xl px-3 py-2">{error}</p>
+        <p className="text-[10px] text-danger bg-danger/10 px-3 py-2 border border-danger/40 tm-mono">
+          ! {error}
+        </p>
       )}
 
-      <Button
-        variant="primary"
-        fullWidth
-        onClick={handleSubmit}
-        disabled={follow.isPending}
-      >
-        {follow.isPending ? "Creating…" : "Start Copy-Trading"}
+      <Button variant="primary" fullWidth onClick={submit} disabled={follow.isPending}>
+        {follow.isPending ? "[ DEPLOYING… ]" : "[ ◢ START · COPY · TRADING ◣ ]"}
       </Button>
     </div>
   );
 }
 
-function Toggle({
-  label,
-  description,
-  checked,
-  onChange,
-}: {
-  label:       string;
-  description: string;
-  checked:     boolean;
-  onChange:    (v: boolean) => void;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-3">
-      <div>
-        <p className="text-sm text-text-primary">{label}</p>
-        <p className="text-xs text-text-muted mt-0.5">{description}</p>
-      </div>
-      <button
-        onClick={() => onChange(!checked)}
-        className={`relative shrink-0 w-11 h-6 rounded-full transition-colors ${
-          checked ? "bg-ton-500" : "bg-surface-border"
-        }`}
-      >
-        <span
-          className={`absolute top-0.5 left-0.5 size-5 rounded-full bg-white transition-transform ${
-            checked ? "translate-x-5" : "translate-x-0"
-          }`}
-        />
-      </button>
-    </div>
-  );
-}
-
-// ─── ActiveStrategyCard ───────────────────────────────────────────────────────
-
 function ActiveStrategyCard({ leaderId }: { leaderId: string }) {
   const { data: strategies } = useStrategies();
-  const pauseMutation  = usePauseStrategy();
-  const deleteMutation = useDeleteStrategy();
+  const pauseM = usePauseStrategy();
+  const deleteM = useDeleteStrategy();
 
-  const strategy = strategies?.find((s) => s.leaderWalletId === leaderId);
-  if (!strategy) return null;
+  const s = strategies?.find((s) => s.leaderWalletId === leaderId);
+  if (!s) return null;
 
   const modeLabel =
-    strategy.mode === "fixed_amount"
-      ? `$${strategy.fixedAmount ?? "?"} per trade`
-      : `${strategy.percentOfLeader ?? "?"}% of leader`;
+    s.mode === "fixed_amount"
+      ? `$${s.fixedAmount ?? "?"} / trade`
+      : `${s.percentOfLeader ?? "?"}% of leader`;
 
   return (
-    <Card elevated className="border border-ton-500/30">
+    <Card elevated>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Your Strategy</CardTitle>
-          <Badge variant={strategy.isPaused ? "warning" : "success"}>
-            {strategy.isPaused ? "Paused" : "Active"}
+        <div className="flex justify-between items-center">
+          <CardTitle>YOUR · STRATEGY</CardTitle>
+          <Badge variant={s.isPaused ? "warning" : "success"}>
+            {s.isPaused ? "⏸ PAUSED" : "▶ ACTIVE"}
           </Badge>
         </div>
       </CardHeader>
       <CardBody className="space-y-3">
-        <div className="grid grid-cols-2 gap-2 text-xs">
+        <div className="grid grid-cols-2 gap-2 text-[10px] tm-mono">
           <div>
-            <span className="text-text-muted">Mode</span>
-            <p className="text-text-primary font-medium mt-0.5">{modeLabel}</p>
+            <div className="text-phos-mid">Mode</div>
+            <div className="text-phos-hi mt-0.5">{modeLabel}</div>
           </div>
           <div>
-            <span className="text-text-muted">Slippage</span>
-            <p className="text-text-primary font-medium mt-0.5">
-              {(strategy.slippageBps / 100).toFixed(2)}%
-            </p>
+            <div className="text-phos-mid">Slippage</div>
+            <div className="text-phos-hi mt-0.5">{(s.slippageBps / 100).toFixed(2)}%</div>
           </div>
           <div>
-            <span className="text-text-muted">Manual confirm</span>
-            <p className="text-text-primary font-medium mt-0.5">
-              {strategy.requireManualConfirm ? "Yes" : "No"}
-            </p>
+            <div className="text-phos-mid">Manual confirm</div>
+            <div className="text-phos-hi mt-0.5">{s.requireManualConfirm ? "YES" : "NO"}</div>
           </div>
           <div>
-            <span className="text-text-muted">Copy sells</span>
-            <p className="text-text-primary font-medium mt-0.5">
-              {strategy.copySells ? "Yes" : "No"}
-            </p>
+            <div className="text-phos-mid">Copy sells</div>
+            <div className="text-phos-hi mt-0.5">{s.copySells ? "YES" : "NO"}</div>
           </div>
         </div>
-
         <div className="flex gap-2 pt-1">
           <Button
             variant="secondary"
             size="sm"
             fullWidth
-            disabled={pauseMutation.isPending}
-            onClick={() =>
-              pauseMutation.mutate({ id: strategy.id, isPaused: !strategy.isPaused })
-            }
+            disabled={pauseM.isPending}
+            onClick={() => pauseM.mutate({ id: s.id, isPaused: !s.isPaused })}
           >
-            {strategy.isPaused ? "Resume" : "Pause"}
+            {s.isPaused ? "RESUME" : "PAUSE"}
           </Button>
           <Button
             variant="danger"
             size="sm"
             fullWidth
-            disabled={deleteMutation.isPending}
-            onClick={() => deleteMutation.mutate(strategy.id)}
+            disabled={deleteM.isPending}
+            onClick={() => deleteM.mutate(s.id)}
           >
-            Unfollow
+            UNFOLLOW
           </Button>
         </div>
       </CardBody>
     </Card>
   );
 }
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function LeaderDetailPage() {
   const params = useParams<{ id: string }>();
@@ -290,182 +274,188 @@ export default function LeaderDetailPage() {
 
   const { data: leader, isLoading, isError } = useLeader(id);
   const { data: strategies } = useStrategies();
-  const { data: activity, isLoading: activityLoading } = useActivity({
-    leaderId: id,
-    limit: 10,
-  });
+  const { data: activity, isLoading: activityLoading } = useActivity({ leaderId: id, limit: 10 });
 
   const isFollowing = strategies?.some((s) => s.leaderWalletId === id) ?? false;
-  // editOpen: only true when user explicitly opens the edit form
   const [editOpen, setEditOpen] = useState(false);
 
-  // ── Loading ──────────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="px-4 pt-4 space-y-4">
-        <Skeleton className="w-8 h-8 rounded-xl" />
-        <Skeleton className="w-48 h-7" />
-        <Skeleton className="w-full h-24 rounded-2xl" />
-        <Skeleton className="w-full h-40 rounded-2xl" />
+      <div>
+        <TermHeader title="LOADING…" sub="leader · profile" />
+        <div className="px-4 pt-2 space-y-3">
+          <Skeleton className="h-7 w-48" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-40 w-full" />
+        </div>
       </div>
     );
   }
 
-  // ── Error ────────────────────────────────────────────────────────────────────
   if (isError || !leader) {
     return (
-      <div className="px-4 pt-12 text-center">
-        <p className="text-4xl mb-3">⚠️</p>
-        <p className="text-text-secondary font-medium">Leader not found</p>
-        <Link href="/leaders" className="mt-4 inline-block text-ton-400 text-sm">
-          ← Back to leaders
-        </Link>
+      <div>
+        <TermHeader title="ERR" sub="leader · not · found" />
+        <div className="px-4 pt-12 text-center">
+          <p className="tm-disp text-danger text-lg">▲ 404 ▲</p>
+          <Link href="/leaders" className="text-phos-soft text-sm mt-3 inline-block">
+            ← Back to leaders
+          </Link>
+        </div>
       </div>
     );
   }
 
+  const spark = Array.from({ length: 21 }).map(
+    (_, i) => 40 + i * 2.2 + Math.sin(i * 0.6) * 8 + leader.activityScore * 12,
+  );
+
   return (
-    <div className="px-4 pt-4 space-y-4 pb-8">
-      {/* Back */}
-      <button
-        onClick={() => router.back()}
-        className="flex items-center gap-1.5 text-sm text-text-muted active:text-text-secondary"
-      >
-        <span>←</span> Leaders
-      </button>
+    <div>
+      <TermHeader title={leader.nickname.toUpperCase()} sub={`leader · ${shortenAddress(leader.address)}`} />
 
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-text-primary">{leader.nickname}</h1>
-          <p className="text-xs text-text-muted mt-0.5 font-mono">
-            {shortenAddress(leader.address)}
-          </p>
-        </div>
-        <RiskBadge score={leader.riskScore} />
-      </div>
+      <div className="px-4 pt-2 space-y-3.5">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-1.5 text-[10px] text-phos-mid tm-mono"
+        >
+          ← LEADERS
+        </button>
 
-      {/* Tags */}
-      {leader.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {leader.tags.map((t) => (
-            <Badge key={t} variant="muted">{t}</Badge>
+        {leader.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {leader.tags.map((t) => (
+              <Badge key={t} variant="muted">
+                {t}
+              </Badge>
+            ))}
+          </div>
+        )}
+
+        {/* PnL/spark panel */}
+        <CornerBox className="border border-phos-border bg-bg-panel p-3">
+          <div className="flex justify-between items-baseline">
+            <span className="text-[9px] text-phos-mid tracking-[0.15em]">PnL · TREND</span>
+            <span className="tm-mono text-[9px] text-phos-mid">
+              {formatRelativeTime(new Date().toISOString())}
+            </span>
+          </div>
+          <div className="tm-disp tm-glow text-[28px] text-phos-hi mt-1">
+            {formatPercent(leader.winRateApprox)} <span className="text-[14px] text-phos-soft">win</span>
+          </div>
+          <div className="mt-1.5">
+            <Sparkline data={spark} width={310} height={56} />
+          </div>
+          <div className="mt-1 flex justify-between text-[9px] text-phos-mid tm-mono">
+            <span>30d ago</span>
+            <span>14d</span>
+            <span>7d</span>
+            <span className="text-phos">NOW ▸</span>
+          </div>
+        </CornerBox>
+
+        <div className="grid grid-cols-3 gap-1.5">
+          {[
+            { l: "WIN", v: formatPercent(leader.winRateApprox), s: leader.isFollowing ? "followed" : "·" },
+            { l: "FREQ", v: formatPercent(leader.activityScore), s: "rolling" },
+            { l: "RISK", v: `${leader.riskScore.toFixed(1)}/10`, s: leader.riskScore <= 3 ? "low" : leader.riskScore <= 6 ? "med" : "hi" },
+          ].map((c) => (
+            <div
+              key={c.l}
+              className="border border-phos-border-dim p-2 text-center"
+              style={{ background: "rgba(0,255,102,0.03)" }}
+            >
+              <div className="text-[9px] text-phos-mid tracking-[0.15em]">[{c.l}]</div>
+              <div className="tm-disp tm-glow text-[15px] text-phos-hi mt-0.5">{c.v}</div>
+              <div className="text-[8px] text-phos-mid mt-0.5">{c.s}</div>
+            </div>
           ))}
         </div>
-      )}
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-3 gap-3">
-        <Card className="text-center py-3">
-          <p className="text-lg font-bold text-text-primary">
-            {formatPercent(leader.winRateApprox)}
-          </p>
-          <p className="text-xs text-text-muted mt-0.5">Win rate</p>
-        </Card>
-        <Card className="text-center py-3">
-          <p className="text-lg font-bold text-text-primary">
-            {formatPercent(leader.activityScore)}
-          </p>
-          <p className="text-xs text-text-muted mt-0.5">Activity</p>
-        </Card>
-        <Card className="text-center py-3">
-          <p className="text-lg font-bold text-text-primary">{leader.riskScore}/10</p>
-          <p className="text-xs text-text-muted mt-0.5">Risk</p>
-        </Card>
-      </div>
-
-      {leader.notes && (
-        <p className="text-sm text-text-muted bg-surface-card rounded-2xl px-4 py-3 border border-surface-border">
-          {leader.notes}
-        </p>
-      )}
-
-      {/* Strategy section */}
-      {isFollowing ? (
-        <>
-          <ActiveStrategyCard leaderId={id} />
-          {!editOpen && (
-            <button
-              onClick={() => setEditOpen(true)}
-              className="text-xs text-ton-400 underline"
-            >
-              Edit strategy parameters
-            </button>
+        <div className="border border-phos-border-dim px-3 py-2.5">
+          <RiskMeter score={leader.riskScore} max={10} label="RISK · SCORE" />
+          {leader.notes && (
+            <div className="text-[9px] text-phos-mid mt-2 leading-relaxed">▸ {leader.notes}</div>
           )}
-          {editOpen && (
-            <Card>
+        </div>
+
+        {/* Strategy section */}
+        {isFollowing ? (
+          <>
+            <ActiveStrategyCard leaderId={id} />
+            {!editOpen && (
+              <button
+                onClick={() => setEditOpen(true)}
+                className="text-[10px] text-phos-soft underline tm-mono"
+              >
+                edit strategy parameters →
+              </button>
+            )}
+            {editOpen && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>EDIT · STRATEGY</CardTitle>
+                </CardHeader>
+                <CardBody>
+                  <StrategyForm leaderId={id} onSuccess={() => setEditOpen(false)} />
+                </CardBody>
+              </Card>
+            )}
+          </>
+        ) : (
+          <>
+            <MirrorBar label="STRATEGY · CONFIG" />
+            <Card elevated>
               <CardHeader>
-                <CardTitle>Edit Strategy</CardTitle>
+                <CardTitle>SET · UP · COPY · STRATEGY</CardTitle>
+                <p className="text-[10px] text-phos-mid mt-1">
+                  configure how to mirror {leader.nickname}&apos;s trades.
+                </p>
               </CardHeader>
               <CardBody>
-                <StrategyForm leaderId={id} onSuccess={() => setEditOpen(false)} />
+                <StrategyForm leaderId={id} onSuccess={() => {}} />
               </CardBody>
             </Card>
-          )}
-        </>
-      ) : (
-        <Card elevated>
-          <CardHeader>
-            <CardTitle>Set Up Copy Strategy</CardTitle>
-            <p className="text-xs text-text-muted mt-1">
-              Configure how to mirror {leader.nickname}&apos;s trades.
-            </p>
-          </CardHeader>
-          <CardBody>
-            <StrategyForm leaderId={id} onSuccess={() => {}} />
-          </CardBody>
-        </Card>
-      )}
-
-      {/* Recent trades */}
-      <div>
-        <h2 className="text-sm font-semibold text-text-secondary mb-2">
-          Recent Trades
-        </h2>
-
-        {activityLoading ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="w-full h-14 rounded-2xl" />
-            ))}
-          </div>
-        ) : activity && activity.length > 0 ? (
-          <div className="space-y-2">
-            {activity.map((event) => (
-              <Card key={event.id}>
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-text-primary">
-                      {formatAmount(event.soldAmountDecimal)}{" "}
-                      <span className="text-text-secondary">{event.soldToken}</span>{" "}
-                      <span className="text-text-muted font-normal">→</span>{" "}
-                      <span className="text-text-secondary">{event.boughtToken}</span>
-                    </p>
-                    {event.usdEstimate != null && (
-                      <p className="text-xs text-text-muted mt-0.5">
-                        ≈ {formatUsd(event.usdEstimate)} · {formatRelativeTime(event.timestamp)}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    {event.decision && (
-                      <DecisionBadge decision={event.decision.outcome} />
-                    )}
-                    {!event.decision && (
-                      <Badge variant="muted">No decision</Badge>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card>
-            <p className="text-text-muted text-sm text-center py-4">
-              No trades recorded yet.
-            </p>
-          </Card>
+          </>
         )}
+
+        {/* Recent trades */}
+        <div>
+          <MirrorBar label="RECENT · TRADES" />
+          <div className="mt-1.5 border border-phos-border-dim bg-bg-panel">
+            {activityLoading ? (
+              <div className="p-2 space-y-1">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="w-full h-10" />
+                ))}
+              </div>
+            ) : activity && activity.length > 0 ? (
+              activity.map((e, i) => (
+                <div
+                  key={e.id}
+                  className={`grid items-center gap-2 px-2.5 py-1.5 text-[10px] ${
+                    i ? "border-t border-dashed border-phos-border-dim" : ""
+                  }`}
+                  style={{ gridTemplateColumns: "52px 1fr auto" }}
+                >
+                  <span className="text-phos-mid">
+                    {new Date(e.timestamp).toLocaleTimeString("en-GB", { hour12: false }).slice(0, 5)}
+                  </span>
+                  <span className="text-phos-hi tm-mono">
+                    {formatAmount(e.soldAmountDecimal)} {e.soldToken} → {e.boughtToken}
+                  </span>
+                  <span className="text-phos-soft tm-mono">
+                    {e.decision && <DecisionBadge decision={e.decision.outcome} />}
+                    {" "}
+                    {e.usdEstimate != null && formatUsd(e.usdEstimate)}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="text-phos-mid text-[10px] text-center py-4">no trades recorded yet.</p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

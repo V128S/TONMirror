@@ -1,31 +1,39 @@
-import type { ReactNode } from "react";
-import type { Metadata, Viewport } from "next";
-import "./globals.css";
+import type { Metadata } from "next";
+import { JetBrains_Mono, Major_Mono_Display, Share_Tech_Mono } from "next/font/google";
 import { Providers } from "@/components/Providers";
+import "./globals.css";
+
+const jet = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "700", "800"],
+  variable: "--font-jet",
+  display: "swap",
+});
+
+const maj = Major_Mono_Display({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-maj",
+  display: "swap",
+});
+
+const sht = Share_Tech_Mono({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-sht",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title:       "TonMirror",
-  description: "Copy-trade on TON — follow the best wallets",
-  // Telegram Mini Apps should not be indexed
-  robots:      "noindex",
+  title: "TonMirror",
+  description: "Copy the alpha of TON's best traders — automatically, inside Telegram.",
 };
 
-export const viewport: Viewport = {
-  width:               "device-width",
-  initialScale:        1,
-  maximumScale:        1,
-  userScalable:        false,
-  viewportFit:         "cover",
-  themeColor:          "#0e1117",
-};
-
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
-      <body>
-        <Providers>
-          {children}
-        </Providers>
+      <body className={`${jet.variable} ${maj.variable} ${sht.variable} antialiased bg-bg`}>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
