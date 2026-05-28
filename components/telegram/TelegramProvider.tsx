@@ -128,13 +128,23 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
     const tg = window.Telegram?.WebApp;
 
     if (tg) {
-      tg.ready();
+      // CRITICAL ORDER: expand first, then requestFullscreen, then ready().
+      // Telegram shows the Mini App at the moment ready() is called.
+      // Calling expand() before ready() means the app is revealed already at full height.
       tg.expand();
 
-      // Request fullscreen if the API is available (Telegram >= 7.7)
-      if (typeof (tg as any).requestFullscreen === "function") {
-        try { (tg as any).requestFullscreen(); } catch { /* ignore */ }
-      }
+      const tryFullscreen = () => {
+        if (typeof (tg as any).requestFullscreen === "function") {
+          try { (tg as any).requestFullscreen(); } catch { /* ignore */ }
+        }
+      };
+      tryFullscreen();
+
+      tg.ready(); // ← signals Telegram to reveal the Mini App (already expanded)
+
+      // Belt-and-suspenders: retry fullscreen after chrome animation settles
+      const t1 = setTimeout(tryFullscreen, 300);
+      const t2 = setTimeout(tryFullscreen, 800);
 
       const getViewport = (): TelegramViewport => ({
         height:       tg.viewportHeight,
@@ -171,6 +181,8 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       }
 
       return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
         tg.offEvent("viewportChanged", update);
         tg.offEvent("themeChanged",    update);
         try { (tg as any).offEvent("fullscreenChanged", update); } catch { /* ignore */ }

@@ -13,6 +13,11 @@ import { prisma } from "@/lib/prisma";
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? "";
 const APP_URL   = process.env.NEXT_PUBLIC_APP_URL ?? "https://tonmirror.vercel.app";
 
+// is_fullscreen: true (Bot API 8.0) — Mini App opens directly fullscreen, no half-screen peek
+function webApp(path = "") {
+  return { url: `${APP_URL}${path}`, is_fullscreen: true };
+}
+
 // ─── Telegram API helper ──────────────────────────────────────────────────────
 
 async function sendMessage(
@@ -95,10 +100,7 @@ export const telegramNotifyService = {
         {
           reply_markup: {
             inline_keyboard: [[
-              {
-                text:    "🔮 Review trade",
-                web_app: { url: `${APP_URL}/market?tab=activity` },
-              },
+              { text: "🔮 Review trade", web_app: webApp("/market?tab=activity") },
             ]],
           },
         },
@@ -115,10 +117,7 @@ export const telegramNotifyService = {
         {
           reply_markup: {
             inline_keyboard: [[
-              {
-                text:    "📊 View Activity",
-                web_app: { url: `${APP_URL}/market?tab=activity` },
-              },
+              { text: "📊 View Activity", web_app: webApp("/market?tab=activity") },
             ]],
           },
         },
