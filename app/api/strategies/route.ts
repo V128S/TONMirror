@@ -8,15 +8,14 @@ import { prisma } from "@/lib/prisma";
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    // In Phase 2 we always use the demo user; Phase 3 will inject real userId
-    const telegramId = searchParams.get("telegramId") ?? "demo_12345";
+    // userId is the DB CUID returned by /api/user/init
+    const userId = searchParams.get("userId") ?? "";
 
-    const user = await prisma.user.findUnique({ where: { telegramId } });
-    if (!user) {
+    if (!userId) {
       return NextResponse.json({ data: [] });
     }
 
-    const strategies = await strategiesRepo.listByUser(user.id);
+    const strategies = await strategiesRepo.listByUser(userId);
     return NextResponse.json({ data: strategies });
   } catch (err) {
     console.error("[GET /api/strategies]", err);
@@ -28,7 +27,8 @@ export async function GET(req: Request) {
 
 const createSchema = z.object({
   leaderWalletId:       z.string().cuid(),
-  telegramId:           z.string().default("demo_12345"),
+  /** DB CUID from /api/user/init — required */
+  userId:               z.string().cuid(),
   mode:                 z.enum(["fixed_amount", "percent_of_leader"]).default("fixed_amount"),
   fixedAmount:          z.number().positive().optional(),
   percentOfLeader:      z.number().positive().max(100).optional(),
@@ -53,22 +53,24 @@ export async function POST(req: Request) {
       );
     }
 
-    const { telegramId, ...rest } = parsed.data;
+    const { userId, ...rest } = parsed.data;
 
-    // Resolve or create demo user
-    const user = await prisma.user.upsert({
-      where:  { telegramId },
-      update: {},
-      create: { telegramId, isDemo: true },
-    });
+    // Verify the user exists (was created by /api/user/init)
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found — call /api/user/init first" },
+        { status: 404 },
+      );
+    }
 
     // Guard: can't follow the same leader twice
-    const existing = await strategiesRepo.findByUserAndLeader(user.id, rest.leaderWalletId);
+    const existing = await strategiesRepo.findByUserAndLeader(userId, rest.leaderWalletId);
     if (existing) {
       return NextResponse.json({ error: "Already following this leader" }, { status: 409 });
     }
 
-    const strategy = await strategiesRepo.create({ userId: user.id, ...rest });
+    const strategy = await strategiesRepo.create({ userId, ...rest });
     return NextResponse.json({ data: strategy }, { status: 201 });
   } catch (err) {
     console.error("[POST /api/strategies]", err);

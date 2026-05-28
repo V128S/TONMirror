@@ -33,11 +33,18 @@ export const leaderKeys = {
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
-export function useLeaders(userId = "demo_12345") {
+/**
+ * @param userId DB CUID from useCurrentUser().userId
+ *               When undefined, leaders are fetched without isFollowing info.
+ */
+export function useLeaders(userId?: string) {
   return useQuery<Leader[]>({
     queryKey: leaderKeys.list(userId),
     queryFn:  async () => {
-      const res = await fetch(`/api/leaders?userId=${userId}`);
+      const url = userId
+        ? `/api/leaders?userId=${userId}`
+        : `/api/leaders`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to load leaders");
       const json = await res.json();
       return json.data;
@@ -63,10 +70,11 @@ export function useFollowLeader() {
 
   return useMutation({
     mutationFn: async (input: {
-      leaderWalletId:       string;
-      telegramId?:          string;
-      mode?:                "fixed_amount" | "percent_of_leader";
-      fixedAmount?:         number;
+      leaderWalletId:        string;
+      /** DB CUID from useCurrentUser().userId — required */
+      userId:                string;
+      mode?:                 "fixed_amount" | "percent_of_leader";
+      fixedAmount?:          number;
       requireManualConfirm?: boolean;
     }) => {
       const res = await fetch("/api/strategies", {
@@ -74,14 +82,14 @@ export function useFollowLeader() {
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({
           leaderWalletId:       input.leaderWalletId,
-          telegramId:           input.telegramId ?? "demo_12345",
+          userId:               input.userId,
           mode:                 input.mode ?? "fixed_amount",
           fixedAmount:          input.fixedAmount ?? 10,
           requireManualConfirm: input.requireManualConfirm ?? true,
         }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Failed to follow leader");
+      if (!res.ok) throw new Error((json as { error?: string }).error ?? "Failed to follow leader");
       return json.data;
     },
     onSuccess: () => {

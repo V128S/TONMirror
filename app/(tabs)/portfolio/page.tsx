@@ -30,6 +30,7 @@ import { formatUsd } from "@/lib/format";
 import { useStrategies, usePauseStrategy, useDeleteStrategy } from "@/hooks/useStrategies";
 import { useActivity } from "@/hooks/useActivity";
 import { useTonBalance } from "@/hooks/useTonBalance";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 type Strategy = NonNullable<ReturnType<typeof useStrategies>["data"]>[number];
 
@@ -126,10 +127,11 @@ function GlassStrategyCard({ s }: { s: Strategy }) {
 /* ── Page ────────────────────────────────────────────────────────────── */
 export default function PortfolioPage() {
   const { theme } = useTheme();
+  const { userId } = useCurrentUser();
   const address = useTonAddress();
   const isConnected = !!address;
   const { tonFormatted, usdFormatted, source, isLoading: balanceLoading } = useTonBalance();
-  const { data: strategies, isLoading: sLoad } = useStrategies();
+  const { data: strategies, isLoading: sLoad } = useStrategies(userId ?? undefined);
   const { data: activity, isLoading: aLoad } = useActivity({ limit: 100 });
 
   const totalVolume  = activity?.reduce((s, e) => s + (e.usdEstimate ?? 0), 0) ?? 0;

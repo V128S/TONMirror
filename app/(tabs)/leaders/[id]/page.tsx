@@ -29,6 +29,7 @@ import { formatUsd, formatPercent, formatAmount, formatRelativeTime, shortenAddr
 import { useLeader, useFollowLeader } from "@/hooks/useLeaders";
 import { useStrategies, usePauseStrategy, useDeleteStrategy } from "@/hooks/useStrategies";
 import { useActivity } from "@/hooks/useActivity";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useTelegramMainButton, useTelegramSecondaryButton } from "@/hooks/useTelegramButton";
 
 interface FormValues {
@@ -80,7 +81,7 @@ function ToggleRow({ label, description, checked, onChange }: {
 }
 
 /* ── Shared strategy form — theme-aware internally via Card/Button ───── */
-function StrategyForm({ leaderId, onSuccess, isGlass }: { leaderId: string; onSuccess: () => void; isGlass: boolean }) {
+function StrategyForm({ leaderId, userId, onSuccess, isGlass }: { leaderId: string; userId: string; onSuccess: () => void; isGlass: boolean }) {
   const [form, setForm] = useState<FormValues>(DEFAULT_FORM);
   const [error, setError] = useState<string | null>(null);
   const follow = useFollowLeader();
@@ -89,7 +90,7 @@ function StrategyForm({ leaderId, onSuccess, isGlass }: { leaderId: string; onSu
   const submit = async () => {
     setError(null);
     try {
-      await follow.mutateAsync({ leaderWalletId: leaderId, mode: form.mode,
+      await follow.mutateAsync({ leaderWalletId: leaderId, userId, mode: form.mode,
         fixedAmount: form.mode === "fixed_amount" ? form.fixedAmount : undefined,
         requireManualConfirm: form.requireManualConfirm });
       onSuccess();
@@ -234,8 +235,9 @@ export default function LeaderDetailPage() {
   const router = useRouter();
   const id = params.id;
 
+  const { userId } = useCurrentUser();
   const { data: leader, isLoading, isError } = useLeader(id);
-  const { data: strategies } = useStrategies();
+  const { data: strategies } = useStrategies(userId ?? undefined);
   const { data: activity, isLoading: activityLoading } = useActivity({ leaderId: id, limit: 10 });
 
   const isFollowing = strategies?.some((s) => s.leaderWalletId === id) ?? false;
@@ -248,8 +250,8 @@ export default function LeaderDetailPage() {
     text: isFollowing ? "✓ FOLLOWING" : "🔮 START COPY-TRADING",
     visible: !!leader && !isLoading,
     color: isFollowing ? "#1a6b35" : "#00b34a",
-    disabled: follow.isPending,
-    onClick: () => { if (!isFollowing && leader) follow.mutate({ leaderWalletId: leader.id }); },
+    disabled: follow.isPending || !userId,
+    onClick: () => { if (!isFollowing && leader && userId) follow.mutate({ leaderWalletId: leader.id, userId }); },
   });
   useTelegramSecondaryButton({ text: "← BACK", visible: !!leader && !isLoading, onClick: () => router.back() });
 
@@ -373,7 +375,7 @@ export default function LeaderDetailPage() {
               {editOpen && (
                 <Card>
                   <CardHeader><CardTitle>EDIT · STRATEGY</CardTitle></CardHeader>
-                  <CardBody><StrategyForm leaderId={id} onSuccess={() => setEditOpen(false)} isGlass={false} /></CardBody>
+                  <CardBody><StrategyForm leaderId={id} userId={userId ?? ""} onSuccess={() => setEditOpen(false)} isGlass={false} /></CardBody>
                 </Card>
               )}
             </>
@@ -385,7 +387,7 @@ export default function LeaderDetailPage() {
                   <CardTitle>SET · UP · COPY · STRATEGY</CardTitle>
                   <p className="text-[10px] text-phos-mid mt-1">configure how to mirror {leader.nickname}&apos;s trades.</p>
                 </CardHeader>
-                <CardBody><StrategyForm leaderId={id} onSuccess={() => {}} isGlass={false} /></CardBody>
+                <CardBody><StrategyForm leaderId={id} userId={userId ?? ""} onSuccess={() => {}} isGlass={false} /></CardBody>
               </Card>
             </>
           )}
@@ -510,7 +512,7 @@ export default function LeaderDetailPage() {
             {editOpen && (
               <Glass radius={22} padding={16}>
                 <div className="text-fg mb-4" style={{ fontSize: 14, fontWeight: 600 }}>Edit strategy</div>
-                <StrategyForm leaderId={id} onSuccess={() => setEditOpen(false)} isGlass />
+                <StrategyForm leaderId={id} userId={userId ?? ""} onSuccess={() => setEditOpen(false)} isGlass />
               </Glass>
             )}
           </>
@@ -521,7 +523,7 @@ export default function LeaderDetailPage() {
               <div className="text-subtle mb-4" style={{ fontSize: 12 }}>
                 Configure how to mirror {prettyName(leader.nickname)}&apos;s trades.
               </div>
-              <StrategyForm leaderId={id} onSuccess={() => {}} isGlass />
+              <StrategyForm leaderId={id} userId={userId ?? ""} onSuccess={() => {}} isGlass />
             </Glass>
           </>
         )}

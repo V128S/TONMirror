@@ -39,15 +39,22 @@ export const strategyKeys = {
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
-export function useStrategies(telegramId = "demo_12345") {
+/**
+ * @param userId DB CUID from useCurrentUser().userId
+ *               When undefined the query is disabled and returns empty data.
+ */
+export function useStrategies(userId?: string) {
   return useQuery<Strategy[]>({
-    queryKey: strategyKeys.list(telegramId),
+    queryKey: strategyKeys.list(userId),
     queryFn:  async () => {
-      const res = await fetch(`/api/strategies?telegramId=${telegramId}`);
+      if (!userId) return [];
+      const res = await fetch(`/api/strategies?userId=${userId}`);
       if (!res.ok) throw new Error("Failed to load strategies");
       const json = await res.json();
       return json.data;
     },
+    enabled:      !!userId,
+    placeholderData: [],
   });
 }
 

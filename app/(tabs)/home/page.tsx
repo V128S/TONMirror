@@ -28,6 +28,7 @@ import { formatUsd, formatRelativeTime, formatAmount } from "@/lib/format";
 import { useStrategies } from "@/hooks/useStrategies";
 import { useActivity }   from "@/hooks/useActivity";
 import { useWallet }     from "@/hooks/useWallet";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const BOOT_LOG = [
   "tonmirror.sys v0.9.4 :: cold boot",
@@ -40,7 +41,8 @@ const BOOT_LOG = [
 
 export default function HomePage() {
   const { theme } = useTheme();
-  const { data: strategies, isLoading: stratLoading } = useStrategies();
+  const { userId } = useCurrentUser();
+  const { data: strategies, isLoading: stratLoading } = useStrategies(userId ?? undefined);
   const { data: activity,   isLoading: actLoading  } = useActivity({ limit: 10 });
   const wallet = useWallet();
 

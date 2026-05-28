@@ -30,6 +30,7 @@ import { useActivity } from "@/hooks/useActivity";
 import type { ActivityEvent } from "@/hooks/useActivity";
 import type { Leader } from "@/hooks/useLeaders";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 type MarketTab   = "leaders" | "activity";
@@ -289,12 +290,13 @@ function LeaderSheetContent({ leader, onClose }: { leader: Leader; onClose: () =
 // ── Page ──────────────────────────────────────────────────────────────────
 function MarketPageInner() {
   const { theme } = useTheme();
+  const { userId } = useCurrentUser();
   const searchParams = useSearchParams();
 
   const [activeTab, setActiveTab] = useState<MarketTab>("leaders");
   const [selectedLeader, setSelectedLeader] = useState<Leader | null>(null);
 
-  const { data: leaders, isLoading: lLoad, isError: lError } = useLeaders();
+  const { data: leaders, isLoading: lLoad, isError: lError } = useLeaders(userId ?? undefined);
   const { data: events,  isLoading: eLoad, isError: eError  } = useActivity({ limit: 50 });
   const [termFilter,  setTermFilter]  = useState<TermFilter>("ALL");
   const [glassFilter, setGlassFilter] = useState<GlassFilter>("All");
