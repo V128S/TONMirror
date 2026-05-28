@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Major_Mono_Display, Share_Tech_Mono } from "next/font/google";
-import Script from "next/script";
 import { Providers } from "@/components/Providers";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import "./globals.css";
@@ -47,39 +46,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // suppressHydrationWarning because ThemeProvider injects pre-hydration
     // script that may add .dark / .theme-terminal before React mounts.
     <html lang="en" suppressHydrationWarning>
-      <body className={`${jet.variable} ${maj.variable} ${sht.variable} antialiased`}>
+      <head>
         {/*
-          next/script strategy="beforeInteractive" is injected into <head> by Next.js
-          and runs BEFORE React hydration — the earliest possible JS execution point.
+          tg-init.js is a static file served from /public.
+          A synchronous <script src> in <head> (no async/defer) runs before
+          any other JavaScript — including React. In Next.js App Router,
+          metadata-derived <head> tags land in the HTML shell, whereas
+          next/script components end up in the RSC streaming payload (too late).
+          This is the earliest possible injection point.
 
-          The script retries on DOMContentLoaded / window load in case Telegram injects
-          window.Telegram.WebApp asynchronously (observed on some Android builds).
+          The script calls expand() → requestFullscreen() → ready() in order.
+          Telegram reveals the Mini App exactly when ready() fires, so calling
+          expand() first ensures it opens at full height with no half-screen flash.
         */}
-        {/*
-          CRITICAL ORDER: expand() → requestFullscreen() → ready()
-          Telegram hides its loading spinner and SHOWS the Mini App exactly when ready() fires.
-          By calling expand() FIRST (before ready()), the app appears already at full height —
-          the user never sees the half-screen "peek" state.
-          requestFullscreen() (Bot API 8.0) removes the Telegram chrome bar as well.
-        */}
-        <Script id="tg-expand" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: `
-(function(){
-  function doExpand(){
-    try{
-      var tg=window.Telegram&&window.Telegram.WebApp;
-      if(!tg)return false;
-      tg.expand();
-      if(typeof tg.requestFullscreen==="function")tg.requestFullscreen();
-      tg.ready();
-      return true;
-    }catch(e){return false;}
-  }
-  if(!doExpand()){
-    document.addEventListener("DOMContentLoaded",doExpand,{once:true});
-    window.addEventListener("load",doExpand,{once:true});
-  }
-})();
-        ` }} />
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="/tg-init.js" />
+      </head>
+      <body className={`${jet.variable} ${maj.variable} ${sht.variable} antialiased`}>
         <ThemeProvider>
           <Providers>{children}</Providers>
         </ThemeProvider>
