@@ -48,19 +48,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <head>
         {/*
-          tg-init.js is a static file served from /public.
-          A synchronous <script src> in <head> (no async/defer) runs before
-          any other JavaScript — including React. In Next.js App Router,
-          metadata-derived <head> tags land in the HTML shell, whereas
-          next/script components end up in the RSC streaming payload (too late).
-          This is the earliest possible injection point.
-
-          The script calls expand() → requestFullscreen() → ready() in order.
-          Telegram reveals the Mini App exactly when ready() fires, so calling
-          expand() first ensures it opens at full height with no half-screen flash.
+          tg-init.js is injected into the real HTML <head> by middleware.ts
+          (see /middleware.ts).  It cannot be placed here via JSX because in
+          Next.js App Router all JSX — including <head> children — goes through
+          the RSC streaming payload and is executed only after React hydration
+          (same timing as useEffect).  The middleware intercepts the HTML
+          response and patches <script src="/tg-init.js"> before </head>
+          so it runs synchronously, before any React code.
         */}
-        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-        <script src="/tg-init.js" />
       </head>
       <body className={`${jet.variable} ${maj.variable} ${sht.variable} antialiased`}>
         <ThemeProvider>
