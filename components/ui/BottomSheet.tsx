@@ -8,7 +8,7 @@ interface BottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
   children: React.ReactNode;
-  /** Sheet max height as % of viewport, default 70 */
+  /** Sheet max height as % of viewport, default 85 */
   heightPercent?: number;
   className?: string;
 }
@@ -22,7 +22,7 @@ export function BottomSheet({
   isOpen,
   onClose,
   children,
-  heightPercent = 70,
+  heightPercent = 85,
   className,
 }: BottomSheetProps) {
   const { theme } = useTheme();
@@ -78,6 +78,10 @@ export function BottomSheet({
 
   if (!visible) return null;
 
+  // dvh (dynamic viewport height) adjusts when the browser chrome appears/hides;
+  // important in Telegram Mini App. Fall back to standard vh via CSS custom property trick.
+  const maxH = `${heightPercent}dvh`;
+
   const sheetStyle: React.CSSProperties = isTerminal
     ? {
         background:   "#000",
@@ -85,17 +89,19 @@ export function BottomSheet({
         borderLeft:   "1px solid rgba(0,255,102,0.20)",
         borderRight:  "1px solid rgba(0,255,102,0.20)",
         borderRadius: 0,
-        maxHeight:    `${heightPercent}vh`,
+        maxHeight:    maxH,
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }
     : {
-        background:          "var(--glass-hi)",
-        WebkitBackdropFilter:"blur(40px) saturate(180%)",
-        backdropFilter:       "blur(40px) saturate(180%)",
+        background:           "var(--glass-hi)",
+        WebkitBackdropFilter: "blur(40px) saturate(180%)",
+        backdropFilter:        "blur(40px) saturate(180%)",
         borderTop:    "0.5px solid var(--glass-edge)",
         borderLeft:   "0.5px solid var(--glass-edge)",
         borderRight:  "0.5px solid var(--glass-edge)",
         borderRadius: "24px 24px 0 0",
-        maxHeight:    `${heightPercent}vh`,
+        maxHeight:    maxH,
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
       };
 
   return (

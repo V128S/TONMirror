@@ -556,7 +556,7 @@ function MarketPageInner() {
         </div>
       )}
 
-      <BottomSheet isOpen={selectedLeader !== null} onClose={() => setSelectedLeader(null)}>
+      <BottomSheet isOpen={selectedLeader !== null} onClose={() => setSelectedLeader(null)} heightPercent={88}>
         {selectedLeader && (
           <LeaderSheetContent leader={selectedLeader} onClose={() => setSelectedLeader(null)} />
         )}

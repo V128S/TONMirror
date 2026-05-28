@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Major_Mono_Display, Share_Tech_Mono } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
@@ -30,6 +30,15 @@ const sht = Share_Tech_Mono({
 export const metadata: Metadata = {
   title: "TonMirror",
   description: "Copy the alpha of TON's best traders — automatically, inside Telegram.",
+};
+
+export const viewport: Viewport = {
+  // viewport-fit=cover enables env(safe-area-inset-*) on iOS notch/Dynamic Island
+  viewportFit: "cover",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

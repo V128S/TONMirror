@@ -29,20 +29,22 @@ export interface TelegramTheme {
 }
 
 export interface TelegramViewport {
-  height:       number;
-  stableHeight: number;
-  isExpanded:   boolean;
+  height:         number;
+  stableHeight:   number;
+  isExpanded:     boolean;
+  isFullscreen:   boolean;
 }
 
 interface TelegramContextValue {
-  isReady:    boolean;
-  isTelegram: boolean;
-  user:       TelegramUser | null;
-  theme:      TelegramTheme;
-  viewport:   TelegramViewport;
-  initData:   string;
-  expand():   void;
-  close():    void;
+  isReady:         boolean;
+  isTelegram:      boolean;
+  user:            TelegramUser | null;
+  theme:           TelegramTheme;
+  viewport:        TelegramViewport;
+  initData:        string;
+  expand():        void;
+  close():         void;
+  requestFullscreen(): void;
 }
 
 // ─── Static defaults (SSR-safe — no window reference) ────────────────────────
@@ -61,6 +63,7 @@ const DEFAULT_VIEWPORT: TelegramViewport = {
   height:       844,
   stableHeight: 844,
   isExpanded:   true,
+  isFullscreen: false,
 };
 
 const MOCK_USER: TelegramUser = {
@@ -72,14 +75,15 @@ const MOCK_USER: TelegramUser = {
 };
 
 const DEFAULT_CTX: TelegramContextValue = {
-  isReady:    false,
-  isTelegram: false,
-  user:       null,
-  theme:      DARK_THEME,
-  viewport:   DEFAULT_VIEWPORT,
-  initData:   "",
-  expand:     () => {},
-  close:      () => {},
+  isReady:             false,
+  isTelegram:          false,
+  user:                null,
+  theme:               DARK_THEME,
+  viewport:            DEFAULT_VIEWPORT,
+  initData:            "",
+  expand:              () => {},
+  close:               () => {},
+  requestFullscreen:   () => {},
 };
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -127,45 +131,67 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       tg.ready();
       tg.expand();
 
+      // Request fullscreen if the API is available (Telegram >= 7.7)
+      if (typeof (tg as any).requestFullscreen === "function") {
+        try { (tg as any).requestFullscreen(); } catch { /* ignore */ }
+      }
+
+      const getViewport = (): TelegramViewport => ({
+        height:       tg.viewportHeight,
+        stableHeight: tg.viewportStableHeight,
+        isExpanded:   tg.isExpanded,
+        isFullscreen: !!(tg as any).isFullscreen,
+      });
+
       const update = () =>
         setCtx({
           isReady:    true,
           isTelegram: true,
           user:       parseTelegramUser(tg),
           theme:      parseTelegramTheme(tg),
-          viewport: {
-            height:       tg.viewportHeight,
-            stableHeight: tg.viewportStableHeight,
-            isExpanded:   tg.isExpanded,
+          viewport:   getViewport(),
+          initData:   tg.initData,
+          expand:     () => tg.expand(),
+          close:      () => tg.close(),
+          requestFullscreen: () => {
+            if (typeof (tg as any).requestFullscreen === "function") {
+              try { (tg as any).requestFullscreen(); } catch { /* ignore */ }
+            } else {
+              tg.expand();
+            }
           },
-          initData: tg.initData,
-          expand:   () => tg.expand(),
-          close:    () => tg.close(),
         });
 
       update();
-      tg.onEvent("viewportChanged", update);
-      tg.onEvent("themeChanged",    update);
+      tg.onEvent("viewportChanged",    update);
+      tg.onEvent("themeChanged",       update);
+      // fullscreenChanged available in newer Bot API versions
+      if (typeof (tg as any).onEvent === "function") {
+        try { (tg as any).onEvent("fullscreenChanged", update); } catch { /* ignore */ }
+      }
 
       return () => {
         tg.offEvent("viewportChanged", update);
         tg.offEvent("themeChanged",    update);
+        try { (tg as any).offEvent("fullscreenChanged", update); } catch { /* ignore */ }
       };
     } else {
       // Dev / browser fallback — mock user, actual window height
       setCtx({
-        isReady:    true,
-        isTelegram: false,
-        user:       MOCK_USER,
-        theme:      DARK_THEME,
+        isReady:           true,
+        isTelegram:        false,
+        user:              MOCK_USER,
+        theme:             DARK_THEME,
         viewport: {
           height:       window.innerHeight,
           stableHeight: window.innerHeight,
           isExpanded:   true,
+          isFullscreen: true,
         },
-        initData: "",
-        expand:   () => {},
-        close:    () => {},
+        initData:          "",
+        expand:            () => {},
+        close:             () => {},
+        requestFullscreen: () => {},
       });
     }
   }, []);
