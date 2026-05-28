@@ -6,6 +6,7 @@ import {
   useTonConnectUI,
   useIsConnectionRestored,
 } from "@tonconnect/ui-react";
+import { useEffect, useRef } from "react";
 import { shortenAddress } from "@/lib/format";
 
 export interface WalletState {
@@ -37,6 +38,33 @@ export function useWallet(): WalletState {
     isRestored,
     isConnected:  !!address,
   };
+}
+
+/**
+ * Persists the connected wallet address to DB via /api/user/wallet.
+ * Called automatically whenever the wallet connects.
+ *
+ * @param userId — DB CUID from useCurrentUser
+ */
+export function usePersistWallet(userId: string | null) {
+  const address     = useTonAddress();
+  const wallet      = useTonWallet();
+  const savedRef    = useRef<string | null>(null); // track last-persisted address
+
+  useEffect(() => {
+    if (!address || !userId || savedRef.current === address) return;
+    savedRef.current = address;
+
+    fetch("/api/user/wallet", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({
+        userId,
+        address,
+        walletAppName: wallet?.device.appName ?? null,
+      }),
+    }).catch((err) => console.warn("[usePersistWallet]", err));
+  }, [address, userId, wallet]);
 }
 
 /**
