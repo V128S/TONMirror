@@ -15,6 +15,7 @@ import { strategiesRepo } from "@/server/repositories/strategies.repo";
 import { tradesRepo }     from "@/server/repositories/trades.repo";
 import { decisionsRepo }  from "@/server/repositories/decisions.repo";
 import { executionsRepo } from "@/server/repositories/executions.repo";
+import { telegramNotifyService } from "@/server/services/telegram-notify.service";
 import type { NormalizedTradeEvent } from "@/modules/trade-ingestion/types";
 
 const evaluator = new DefaultStrategyEvaluator();
@@ -101,8 +102,9 @@ export const decisionService = {
         decisionsCreated++;
 
         // 6. Write CopyExecution for accepted + manual_review
+        let executionId: string | undefined;
         if (result.outcome !== "rejected") {
-          await executionsRepo.create({
+          const execution = await executionsRepo.create({
             decisionId: decision.id,
             userId:     strategy.userId,
             // auto strategies get quoted immediately; manual-confirm stays pending
@@ -110,7 +112,20 @@ export const decisionService = {
               ? "pending"
               : "quoted",
           });
+          executionId = execution.id;
         }
+
+        // 7. Telegram push notification (fire-and-forget, never throws)
+        telegramNotifyService.notifyDecision({
+          userId:               strategy.userId,
+          outcome:              result.outcome,
+          leaderNickname:       strategy.leaderWallet.nickname,
+          soldToken:            result.plannedSoldToken,
+          boughtToken:          result.plannedBoughtToken,
+          plannedAmountDecimal: result.plannedAmountDecimal ?? null,
+          executionId,
+          riskFlags:            result.riskFlags,
+        }).catch((err) => console.warn("[DecisionService] notify failed:", err));
       } catch (err) {
         await writeErrorLog("evaluate_strategy", strategy.id, err);
       }
