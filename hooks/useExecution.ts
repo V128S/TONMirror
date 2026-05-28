@@ -33,6 +33,18 @@ export type PreparedTransaction = {
   validUntil: number;
 };
 
+export type SubmitInput = {
+  executionId: string;
+  /** Signed BoC returned by TON Connect sendTransaction() */
+  boc: string;
+};
+
+export type SubmitResult = {
+  id:     string;
+  status: string;
+  txHash: string | null;
+};
+
 // ─── API helpers ──────────────────────────────────────────────────────────────
 
 async function fetchQuoteAPI(input: QuoteRequestInput): Promise<NormalizedQuote> {
@@ -50,6 +62,17 @@ async function fetchQuoteAPI(input: QuoteRequestInput): Promise<NormalizedQuote>
   const json = await res.json();
   if (!res.ok) throw new Error(json.error ?? "Failed to fetch quote");
   return json.data;
+}
+
+async function submitAPI(input: SubmitInput): Promise<SubmitResult> {
+  const res  = await fetch("/api/execution/submit", {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ executionId: input.executionId, boc: input.boc }),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error ?? "Failed to submit execution");
+  return json.data as SubmitResult;
 }
 
 async function prepareAPI(input: PrepareRequestInput): Promise<PreparedTransaction> {
@@ -76,7 +99,7 @@ async function prepareAPI(input: PrepareRequestInput): Promise<PreparedTransacti
 export function useExecutionFlow() {
   const queryClient = useQueryClient();
 
-  const [quote,   setQuote]   = useState<NormalizedQuote | null>(null);
+  const [quote,    setQuote]    = useState<NormalizedQuote | null>(null);
   const [prepared, setPrepared] = useState<PreparedTransaction | null>(null);
 
   const quoteMutation = useMutation({
@@ -95,20 +118,32 @@ export function useExecutionFlow() {
     },
   });
 
+  const submitMutation = useMutation({
+    mutationFn: submitAPI,
+    onSuccess:  () => {
+      queryClient.invalidateQueries({ queryKey: activityKeys.all });
+    },
+  });
+
   return {
     quote,
     prepared,
-    isQuoting:   quoteMutation.isPending,
-    isPreparing: prepareMutation.isPending,
-    quoteError:  quoteMutation.error?.message ?? null,
+    isQuoting:    quoteMutation.isPending,
+    isPreparing:  prepareMutation.isPending,
+    isSubmitting: submitMutation.isPending,
+    quoteError:   quoteMutation.error?.message ?? null,
     prepareError: prepareMutation.error?.message ?? null,
-    getQuote:    (input: QuoteRequestInput)  => quoteMutation.mutateAsync(input),
+    submitError:  submitMutation.error?.message ?? null,
+    submitResult: submitMutation.data ?? null,
+    getQuote:    (input: QuoteRequestInput)   => quoteMutation.mutateAsync(input),
     prepare:     (input: PrepareRequestInput) => prepareMutation.mutateAsync(input),
+    submit:      (input: SubmitInput)         => submitMutation.mutateAsync(input),
     reset: () => {
       setQuote(null);
       setPrepared(null);
       quoteMutation.reset();
       prepareMutation.reset();
+      submitMutation.reset();
     },
   };
 }

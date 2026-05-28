@@ -192,12 +192,18 @@ function PreparedView({
   onSend,
   isConnected,
   onConnect,
+  isSending,
+  sendError,
+  isDemo,
 }: {
   messages:    { address: string; amount: string; payload: string; stateInit?: string }[];
   validUntil:  number;
   onSend:      () => void;
   isConnected: boolean;
   onConnect:   () => void;
+  isSending:   boolean;
+  sendError:   string | null;
+  isDemo:      boolean;
 }) {
   const secsLeft = useCountdown(new Date(validUntil * 1000));
 
@@ -215,7 +221,7 @@ function PreparedView({
         <div className="text-[9px] text-phos-mid font-mono leading-tight pt-1 border-t border-dashed border-phos-border-dim mt-1">
           {messages.slice(0, 3).map((_m, i) => (
             <div key={i}>
-              ┝━ msg[{i}] ━━━━━━━━━━━━━━━━━━━━━━━━ <span className="text-phos-soft">SIGNED?</span>
+              ┝━ msg[{i}] ━━━━━━━━━━━━━━━━━━━━━━━━ <span className="text-phos-soft">READY</span>
             </div>
           ))}
           {messages.length > 3 && (
@@ -224,9 +230,26 @@ function PreparedView({
         </div>
       </CornerBox>
 
+      {/* Send error */}
+      {sendError && (
+        <div className="border border-danger bg-danger/10 text-danger px-3 py-2 text-[11px] tm-mono">
+          <span className="tm-glow">✕ TX FAILED ::</span> {sendError}
+        </div>
+      )}
+
       {isConnected ? (
-        <Button variant="primary" fullWidth size="md" onClick={onSend}>
-          [ ◢ SIGN · &amp; · SEND ◣ ]
+        <Button
+          variant="primary"
+          fullWidth
+          size="md"
+          disabled={isSending || secsLeft === 0}
+          onClick={onSend}
+        >
+          {isSending
+            ? "[ SIGNING… · OPEN WALLET ]"
+            : secsLeft === 0
+              ? "[ EXPIRED · REFRESH ]"
+              : "[ ◢ SIGN · & · SEND ◣ ]"}
         </Button>
       ) : (
         <div className="space-y-2">
@@ -239,9 +262,47 @@ function PreparedView({
         </div>
       )}
 
-      <p className="text-[9px] text-warn tm-mono text-center tracking-[0.1em]">
-        ⚠ ON-CHAIN BROADCAST STUBBED IN DEMO · SIGNING WILL NOT SEND
-      </p>
+      {isDemo && (
+        <p className="text-[9px] text-warn tm-mono text-center tracking-[0.1em]">
+          ⚠ DEMO MODE · MOCK MESSAGES · NO REAL FUNDS SPENT
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ─── Submitted confirmation view ──────────────────────────────────────────────
+
+function SubmittedView({
+  txHash,
+  onDismiss,
+}: {
+  txHash:    string | null;
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <CornerBox className="border border-phos bg-bg-panel px-3 py-4 space-y-2">
+        <div className="text-[9px] text-phos-mid tracking-[0.18em]">:: TX · SUBMITTED</div>
+        <div className="tm-disp tm-glow text-[18px]" style={{ color: "#00ffaa" }}>
+          ◈ SENT ON-CHAIN <BlinkCaret />
+        </div>
+        <div className="text-[10px] text-phos-soft tm-mono">
+          Transaction broadcast. Waiting for confirmation…
+        </div>
+        {txHash && (
+          <div className="text-[9px] text-phos-mid tm-mono pt-1 border-t border-dashed border-phos-border-dim mt-1">
+            boc ref{" "}
+            <span className="text-phos-soft tm-glow-soft">
+              …{txHash.slice(-16)}
+            </span>
+          </div>
+        )}
+      </CornerBox>
+
+      <Button variant="secondary" fullWidth size="sm" onClick={onDismiss}>
+        [ ✓ CLOSE ]
+      </Button>
     </div>
   );
 }
@@ -259,7 +320,9 @@ export function QuoteCard({
   const flow = useExecutionFlow();
   const wallet = useWallet();
   const actions = useWalletActions();
-  const [step, setStep] = useState<"idle" | "quoted" | "prepared">("idle");
+  const [step, setStep] = useState<"idle" | "quoted" | "prepared" | "submitted">("idle");
+  const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   useEffect(() => {
     if (step !== "idle") return;
@@ -289,8 +352,36 @@ export function QuoteCard({
       .catch(() => {});
   };
 
-  const handleSend = () => {
-    alert("TON Connect signing is stubbed in this demo. Phase 4 will broadcast the transaction.");
+  /**
+   * Real TON Connect send flow:
+   * 1. Call sendTransaction() — opens wallet app for user to sign
+   * 2. Wallet app broadcasts the tx to TON network automatically
+   * 3. POST to /api/execution/submit with the signed BoC
+   * 4. Server marks execution as "submitted"
+   */
+  const handleSend = async () => {
+    if (!flow.prepared) return;
+    setIsSending(true);
+    setSendError(null);
+    try {
+      // Opens the wallet app (Tonkeeper, MyTonWallet, etc.) for signing.
+      // Returns { boc: string } after user approves — the wallet broadcasts
+      // the transaction to the TON blockchain automatically.
+      const result = await actions.sendTransaction({
+        messages:   flow.prepared.messages,
+        validUntil: flow.prepared.validUntil,
+      });
+
+      // Record the submission on the server
+      await flow.submit({ executionId, boc: result.boc });
+      setStep("submitted");
+    } catch (err) {
+      // User rejected the tx, or wallet app timed out / threw an error
+      const msg = err instanceof Error ? err.message : "Transaction rejected or failed";
+      setSendError(msg);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const expiresAt = flow.quote
@@ -381,6 +472,17 @@ export function QuoteCard({
             onSend={handleSend}
             isConnected={wallet.isConnected}
             onConnect={actions.connect}
+            isSending={isSending}
+            sendError={sendError}
+            isDemo={!(flow.quote?.isLive ?? false)}
+          />
+        )}
+
+        {/* SUBMITTED */}
+        {step === "submitted" && (
+          <SubmittedView
+            txHash={flow.submitResult?.txHash ?? null}
+            onDismiss={onDismiss}
           />
         )}
       </CardBody>

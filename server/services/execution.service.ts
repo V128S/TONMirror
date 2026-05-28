@@ -89,18 +89,46 @@ export const executionService = {
   },
 
   /**
-   * Submit a signed transaction.
+   * Mark an execution as submitted after the user has signed and sent the tx
+   * via TON Connect.
    *
-   * TODO (Phase 4): receive signedBoc / messages from TON Connect, broadcast
-   * via TonClient or TON API, update status to submitted/confirmed.
+   * TON Connect broadcasts the transaction itself via the connected wallet app
+   * (Tonkeeper, MyTonWallet, etc.) — we only need to record that it was sent.
    *
-   * Kept as stub because on-chain broadcast without proper error handling and
-   * re-entrancy guards is unsafe for an MVP demo.
+   * The signed BoC is stored as a txHash reference. In production you would
+   * poll TonAPI GET /v2/blockchain/transactions to get the canonical on-chain
+   * hash after the tx lands (usually within a few seconds on TON).
+   *
+   * TODO (production): after storing "submitted", start a background job that
+   * polls TonAPI every 3s for up to 60s to confirm the tx and update status
+   * to "confirmed" with the real txHash.
    */
-  async submitExecution(_executionId: string, _signedBoc: string): Promise<never> {
-    throw new Error(
-      "submitExecution not yet implemented. " +
-      "Phase 4: broadcast via TON Connect / TonClient.",
-    );
+  async submitExecution(
+    executionId: string,
+    signedBoc: string,
+  ): Promise<{ id: string; status: string; txHash: string | null }> {
+    const execution = await executionsRepo.findById(executionId);
+    if (!execution) throw new Error("Execution not found");
+
+    if (execution.status === "submitted" || execution.status === "confirmed") {
+      // Idempotent — already submitted, return current state
+      return { id: execution.id, status: execution.status, txHash: execution.txHash };
+    }
+
+    // Store first 64 chars of the BoC as a searchable reference.
+    // A BoC is a base64-encoded bag-of-cells; the wallet app has already
+    // broadcast it so no separate network call is needed here.
+    const bocRef = signedBoc.slice(0, 64);
+
+    const updated = await executionsRepo.update(executionId, {
+      status: "submitted",
+      txHash: bocRef,
+    });
+
+    return {
+      id:     updated.id,
+      status: updated.status,
+      txHash: updated.txHash,
+    };
   },
 };

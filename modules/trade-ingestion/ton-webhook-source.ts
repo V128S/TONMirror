@@ -50,16 +50,112 @@ export class TonWebhookTradeSource implements LeaderTradeSource {
   }
 
   /**
-   * Returns recent trades for a wallet by querying the TON indexer.
+   * Fetches recent JettonSwap trades for a wallet from TonAPI v2.
    *
-   * TODO (production): call TonAPI GET /v2/accounts/{address}/events
-   * with Authorization: Bearer <TON_API_KEY>, map to NormalizedTradeEvent[].
+   * Calls GET /v2/accounts/{address}/events?limit=20&subject_only=true
+   * and normalises JettonSwap actions into NormalizedTradeEvent[].
    *
-   * Stub returns empty array so the webhook route never crashes on init.
+   * Falls back to [] on any network/parse error so callers never crash.
    */
-  async getRecentTrades(_address: string): Promise<NormalizedTradeEvent[]> {
-    // TODO(live): fetch from https://tonapi.io/v2/accounts/{address}/events
-    return [];
+  async getRecentTrades(address: string): Promise<NormalizedTradeEvent[]> {
+    const leaderWalletId = this.watchedWallets.get(address) ?? address;
+
+    try {
+      const apiKey = process.env.TON_API_KEY ?? "";
+      const headers: Record<string, string> = { Accept: "application/json" };
+      if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+
+      const url =
+        `https://tonapi.io/v2/accounts/${encodeURIComponent(address)}/events` +
+        `?limit=20&subject_only=true&initiator=true`;
+
+      const res = await fetch(url, { headers });
+      if (!res.ok) {
+        console.warn(`[TonWebhookTradeSource] TonAPI ${res.status} for ${address}`);
+        return [];
+      }
+
+      const json = (await res.json()) as {
+        events: Array<{
+          event_id: string;
+          timestamp: number;
+          actions: Array<{
+            type:   string;
+            status: string;
+            JettonSwap?: {
+              dex:               string;
+              ton_in?:           string;
+              ton_out?:          string;
+              amount_in:         string;
+              amount_out:        string;
+              jetton_master_in?:  { symbol?: string; decimals?: number };
+              jetton_master_out?: { symbol?: string; decimals?: number };
+            };
+          }>;
+        }>;
+      };
+
+      const events: NormalizedTradeEvent[] = [];
+
+      for (const event of json.events ?? []) {
+        for (const action of event.actions ?? []) {
+          if (action.type !== "JettonSwap" || action.status !== "ok") continue;
+          const s = action.JettonSwap!;
+
+          // Determine tokens and amounts
+          const isTonIn    = Boolean(s.ton_in && BigInt(s.ton_in) > BigInt(0));
+          const isTonOut   = Boolean(s.ton_out && BigInt(s.ton_out) > BigInt(0));
+
+          const soldToken   = isTonIn  ? "TON" : (s.jetton_master_in?.symbol  ?? "UNKNOWN");
+          const boughtToken = isTonOut ? "TON" : (s.jetton_master_out?.symbol ?? "UNKNOWN");
+
+          // Resolve decimal amounts
+          const NANO = BigInt(1_000_000_000);
+          const soldDecimalsVal  = s.jetton_master_in?.decimals  ?? 9;
+          const boughtDecimalsVal = s.jetton_master_out?.decimals ?? 9;
+
+          const soldAmountDecimal = isTonIn
+            ? Number(BigInt(s.ton_in!)  * BigInt(1000) / NANO) / 1000
+            : Number(BigInt(s.amount_in))  / Math.pow(10, soldDecimalsVal);
+
+          const boughtAmountDecimal = isTonOut
+            ? Number(BigInt(s.ton_out!) * BigInt(1000) / NANO) / 1000
+            : Number(BigInt(s.amount_out)) / Math.pow(10, boughtDecimalsVal);
+
+          // Rough USD estimate (TON at ~$3, jetton at unknown — use TON side)
+          const ROUGH_TON_USD = 3;
+          const usdEstimate = isTonIn
+            ? soldAmountDecimal * ROUGH_TON_USD
+            : isTonOut
+              ? boughtAmountDecimal * ROUGH_TON_USD
+              : undefined;
+
+          const externalId = `${address}_${event.event_id}_${soldToken}_${boughtToken}`;
+
+          events.push({
+            id:                  externalId,
+            externalId,
+            leaderWalletId,
+            leaderAddress:       address,
+            txHash:              event.event_id,
+            timestamp:           new Date(event.timestamp * 1_000),
+            soldToken,
+            boughtToken,
+            soldAmountDecimal,
+            boughtAmountDecimal,
+            usdEstimate,
+            dex:                 s.dex ?? "ston.fi",
+            sourceProvider:      "ton_webhook",
+            rawSourceJson:       { event_id: event.event_id, action: s },
+          });
+        }
+      }
+
+      return events;
+    } catch (err) {
+      console.warn("[TonWebhookTradeSource] getRecentTrades failed:", err);
+      return [];
+    }
   }
 
   onTrade(handler: TradeEventHandler): void {
