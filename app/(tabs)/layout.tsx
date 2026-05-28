@@ -40,8 +40,11 @@ export default function TabsLayout({ children }: { children: React.ReactNode }) 
     <div className="relative min-h-screen text-fg">
       <GlassBackdrop />
       <GlassTicker />
-      {/* pt-[30px] clears ticker (30px); pb-[96px] clears tab bar */}
-      <main className="relative z-10 pt-[30px] pb-[96px]">
+      {/* pt clears ticker (30px) + safe-area-inset-top for fullscreen mode; pb clears tab bar */}
+      <main
+        className="relative z-10 pb-[96px]"
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 30px)" }}
+      >
         {children}
       </main>
       <GlassTabBar />

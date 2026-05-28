@@ -82,6 +82,7 @@ html.theme-terminal {
     color: rgb(var(--text1));
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif;
     font-feature-settings: "tnum","ss01";
+    /* safe-area-inset-bottom keeps content above the iOS home indicator */
     padding-bottom: env(safe-area-inset-bottom, 0);
     overscroll-behavior: none;
     -webkit-font-smoothing: antialiased;

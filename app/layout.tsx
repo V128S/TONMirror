@@ -46,6 +46,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // suppressHydrationWarning because ThemeProvider injects pre-hydration
     // script that may add .dark / .theme-terminal before React mounts.
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/*
+          Run as early as possible — before React hydration.
+          Calls expand() to fill available height immediately (no half-screen flash),
+          then requestFullscreen() to remove the Telegram chrome header entirely.
+          Uses optional chaining so it silently no-ops in a browser dev environment.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var tg=window.Telegram&&window.Telegram.WebApp;if(!tg)return;tg.ready();tg.expand();if(typeof tg.requestFullscreen==="function")tg.requestFullscreen();}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className={`${jet.variable} ${maj.variable} ${sht.variable} antialiased`}>
         <ThemeProvider>
           <Providers>{children}</Providers>
