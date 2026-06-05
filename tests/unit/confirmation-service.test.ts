@@ -10,7 +10,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 vi.mock("@/server/repositories/executions.repo", () => ({
-  executionsRepo: { listAwaitingConfirmation: vi.fn(), update: vi.fn() },
+  executionsRepo: { listAwaitingConfirmation: vi.fn(), listStaleSubmitted: vi.fn(), update: vi.fn() },
 }));
 
 import { confirmationService } from "@/server/services/confirmation.service";
@@ -30,6 +30,8 @@ describe("confirmationService.sweepPending", () => {
     vi.clearAllMocks();
     process.env = { ...originalEnv, DATABASE_URL: "postgresql://x" };
     vi.stubGlobal("fetch", vi.fn());
+    // Default: no stale rows — individual tests override when exercising timeout.
+    vi.mocked(executionsRepo.listStaleSubmitted).mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -91,5 +93,28 @@ describe("confirmationService.sweepPending", () => {
 
     const result = await confirmationService.sweepPending();
     expect(result).toMatchObject({ checked: 1, confirmed: 0, failed: 0 });
+  });
+
+  it("times out a stale submitted execution with a real on-chain hash", async () => {
+    vi.mocked(executionsRepo.listAwaitingConfirmation).mockResolvedValue([]);
+    vi.mocked(executionsRepo.listStaleSubmitted).mockResolvedValue([exec("e2", REAL_HASH)]);
+
+    const result = await confirmationService.sweepPending();
+
+    expect(executionsRepo.update).toHaveBeenCalledWith(
+      "e2",
+      expect.objectContaining({ status: "failed", failureReason: "Confirmation timed out" }),
+    );
+    expect(result.failed).toBe(1);
+  });
+
+  it("never times out demo/non-hash stale rows", async () => {
+    vi.mocked(executionsRepo.listAwaitingConfirmation).mockResolvedValue([]);
+    vi.mocked(executionsRepo.listStaleSubmitted).mockResolvedValue([exec("e3", DEMO_REF)]);
+
+    const result = await confirmationService.sweepPending();
+
+    expect(executionsRepo.update).not.toHaveBeenCalled();
+    expect(result.failed).toBe(0);
   });
 });

@@ -161,7 +161,7 @@ function StrategyForm({ leaderId, userId, onSuccess, isGlass }: { leaderId: stri
         {/* Toggles */}
         <div className="space-y-0">
           {[
-            { key: "requireManualConfirm" as keyof FormValues, label: "Manual confirm", desc: "Review every quote before signing" },
+            { key: "requireManualConfirm" as keyof FormValues, label: "Manual confirm", desc: "On: review each quote. Off: auto-quote — you still sign every swap (non-custodial)" },
             { key: "copySells" as keyof FormValues, label: "Copy sells", desc: "Mirror exit orders from leader" },
           ].map((opt, i, arr) => (
             <div key={opt.key} className="flex justify-between items-center py-3"
@@ -216,7 +216,7 @@ function StrategyForm({ leaderId, userId, onSuccess, isGlass }: { leaderId: stri
         </div>
       </div>
       <div>
-        <ToggleRow label="REQUIRE·MANUAL·SIGN" description="review every quote before signing" checked={form.requireManualConfirm} onChange={(v) => set("requireManualConfirm", v)} />
+        <ToggleRow label="REQUIRE·MANUAL·SIGN" description="on: review each quote · off: auto-quote, you still tap to sign" checked={form.requireManualConfirm} onChange={(v) => set("requireManualConfirm", v)} />
         <ToggleRow label="COPY·SELLS" description="mirror exit orders from leader" checked={form.copySells} onChange={(v) => set("copySells", v)} />
       </div>
       {error && <p className="text-[10px] text-danger bg-danger/10 px-3 py-2 border border-danger/40 tm-mono">! {error}</p>}

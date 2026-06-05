@@ -64,6 +64,27 @@ export const confirmationService = {
       }
     }
 
+    // Time out executions stuck in `submitted` long past the active window so
+    // they don't linger forever. Only real on-chain-hash rows are failed; demo /
+    // mock BoCs (non-hex txHash) are left untouched, never failed.
+    const STALE_AFTER_MS = 30 * 60_000;
+    const stale = await executionsRepo.listStaleSubmitted({
+      olderThanMs: STALE_AFTER_MS,
+      limit:       opts?.limit ?? 50,
+    });
+    for (const ex of stale) {
+      if (!ex.txHash || !HEX64.test(ex.txHash)) continue;
+      try {
+        await executionsRepo.update(ex.id, {
+          status:        "failed",
+          failureReason: "Confirmation timed out",
+        });
+        failed += 1;
+      } catch (err) {
+        await writeErrorLog("timeout_execution", ex.id, err);
+      }
+    }
+
     return { checked, confirmed, failed, durationMs: Date.now() - start };
   },
 };

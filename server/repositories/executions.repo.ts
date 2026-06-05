@@ -74,4 +74,18 @@ export const executionsRepo = {
       take:    opts?.limit ?? 50,
     });
   },
+
+  /**
+   * Submitted executions that have sat unconfirmed past `olderThanMs` — the
+   * confirmation sweep marks the on-chain-hash ones as timed-out `failed` so
+   * rows don't stay `submitted` forever once they fall out of the active window.
+   */
+  async listStaleSubmitted(opts: { olderThanMs: number; limit?: number }) {
+    const cutoff = new Date(Date.now() - opts.olderThanMs);
+    return prisma.copyExecution.findMany({
+      where:   { status: "submitted", updatedAt: { lt: cutoff } },
+      orderBy: { updatedAt: "asc" },
+      take:    opts.limit ?? 50,
+    });
+  },
 };
