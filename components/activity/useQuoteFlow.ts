@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useExecutionFlow } from "@/hooks/useExecution";
 import { useWallet, useWalletActions } from "@/hooks/useWallet";
+import { isLiveSource } from "@/lib/env";
 
 export interface QuoteFlowParams {
   executionId:   string;
@@ -44,9 +45,21 @@ export function useQuoteFlow({
 
   const handleConfirm = async () => {
     if (!flow.quote) return;
+
+    // Omniston RFQ quotes are short-lived (~30s). On the live path the quote the
+    // user is looking at may already be stale by the time they tap confirm, so
+    // re-quote right before building the tx and prepare with the fresh quoteId.
+    let quoteId = flow.quote.quoteId;
+    if (isLiveSource) {
+      const fresh = await flow.getQuote({
+        executionId, soldToken, boughtToken, amountIn: plannedAmount, slippageBps,
+      });
+      quoteId = fresh.quoteId;
+    }
+
     await flow.prepare({
       executionId,
-      quoteId:       flow.quote.quoteId,
+      quoteId,
       walletAddress: wallet.address ?? undefined,
     });
     setStep("prepared");

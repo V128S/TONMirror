@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { authHeaders } from "@/lib/telegram-init";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,7 +49,7 @@ export function useStrategies(userId?: string) {
     queryKey: strategyKeys.list(userId),
     queryFn:  async () => {
       if (!userId) return [];
-      const res = await fetch(`/api/strategies?userId=${userId}`);
+      const res = await fetch(`/api/strategies?userId=${userId}`, { headers: { ...authHeaders() } });
       if (!res.ok) throw new Error("Failed to load strategies");
       const json = await res.json();
       return json.data;
@@ -65,7 +66,7 @@ export function usePauseStrategy() {
     mutationFn: async ({ id, isPaused }: { id: string; isPaused: boolean }) => {
       const res = await fetch(`/api/strategies/${id}`, {
         method:  "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body:    JSON.stringify({ isPaused }),
       });
       const json = await res.json();
@@ -83,7 +84,7 @@ export function useDeleteStrategy() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/strategies/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/strategies/${id}`, { method: "DELETE", headers: { ...authHeaders() } });
       if (!res.ok) throw new Error("Failed to delete strategy");
     },
     onSuccess: () => {

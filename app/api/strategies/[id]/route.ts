@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { strategiesRepo } from "@/server/repositories/strategies.repo";
+import { resolveAuthUserId } from "@/server/auth/telegram-auth";
 
 type Params = { params: Promise<{ id: string }> };
+
+/** 403 when a verified caller tries to touch a strategy they don't own. */
+function ownsOrNull(strategyUserId: string, authedId: string | null): boolean {
+  return authedId === null || strategyUserId === authedId;
+}
 
 const updateSchema = z.object({
   mode:                 z.enum(["fixed_amount", "percent_of_leader"]).optional(),
@@ -38,6 +44,10 @@ export async function PATCH(req: Request, { params }: Params) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
+    if (!ownsOrNull(strategy.userId, await resolveAuthUserId(req))) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const updated = await strategiesRepo.update(id, parsed.data);
     return NextResponse.json({ data: updated });
   } catch (err) {
@@ -48,12 +58,15 @@ export async function PATCH(req: Request, { params }: Params) {
 
 // ─── DELETE /api/strategies/[id] ─────────────────────────────────────────────
 
-export async function DELETE(_req: Request, { params }: Params) {
+export async function DELETE(req: Request, { params }: Params) {
   const { id } = await params;
   try {
     const strategy = await strategiesRepo.findById(id);
     if (!strategy) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    if (!ownsOrNull(strategy.userId, await resolveAuthUserId(req))) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     await strategiesRepo.delete(id);
     return new NextResponse(null, { status: 204 });

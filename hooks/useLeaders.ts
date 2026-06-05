@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { authHeaders } from "@/lib/telegram-init";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -79,7 +80,7 @@ export function useFollowLeader() {
     }) => {
       const res = await fetch("/api/strategies", {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body:    JSON.stringify({
           leaderWalletId:       input.leaderWalletId,
           userId:               input.userId,

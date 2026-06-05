@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { verifyTelegramInitData } from "@/server/auth/telegram-auth";
 
 const bodySchema = z.object({
   /** Telegram numeric user ID as a string */
@@ -31,7 +32,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const { telegramId, firstName, lastName, username } = parsed.data;
+    // Prefer the cryptographically-verified Telegram identity over the body —
+    // real Telegram clients send signed initData; the body is only trusted in
+    // the browser/dev fallback (mock user).
+    const verified = verifyTelegramInitData(req.headers.get("x-telegram-init-data") ?? "");
+    const telegramId = verified ? String(verified.id) : parsed.data.telegramId;
+    const firstName  = verified?.first_name ?? parsed.data.firstName;
+    const lastName   = verified?.last_name  ?? parsed.data.lastName;
+    const username   = verified?.username   ?? parsed.data.username;
     const displayName =
       [firstName, lastName].filter(Boolean).join(" ").trim() || null;
 

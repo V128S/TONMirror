@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useTelegram } from "@/components/telegram/TelegramProvider";
+import { authHeaders } from "@/lib/telegram-init";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -42,7 +43,7 @@ export function useCurrentUser(): {
     queryFn:  async () => {
       const res = await fetch("/api/user/init", {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body:    JSON.stringify({
           telegramId: String(tgUser!.id),
           firstName:  tgUser!.firstName,

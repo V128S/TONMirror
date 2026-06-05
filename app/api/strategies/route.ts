@@ -2,14 +2,16 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { strategiesRepo } from "@/server/repositories/strategies.repo";
 import { prisma } from "@/lib/prisma";
+import { resolveAuthUserId } from "@/server/auth/telegram-auth";
 
 // ─── GET /api/strategies ──────────────────────────────────────────────────────
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    // userId is the DB CUID returned by /api/user/init
-    const userId = searchParams.get("userId") ?? "";
+    // Prefer the verified Telegram identity; fall back to the query param in the
+    // browser/dev fallback (no signed initData).
+    const userId = (await resolveAuthUserId(req)) ?? searchParams.get("userId") ?? "";
 
     if (!userId) {
       return NextResponse.json({ data: [] });
@@ -53,7 +55,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const { userId, ...rest } = parsed.data;
+    // The authenticated user (verified initData) wins over the body-supplied id,
+    // so a caller can't create a strategy under someone else's account.
+    const authedId = await resolveAuthUserId(req);
+    const { userId: bodyUserId, ...rest } = parsed.data;
+    const userId = authedId ?? bodyUserId;
 
     // Verify the user exists (was created by /api/user/init)
     const user = await prisma.user.findUnique({ where: { id: userId } });

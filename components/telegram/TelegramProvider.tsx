@@ -6,6 +6,7 @@
  * Exposes TelegramContext consumed by useTelegramUser / useTelegramTheme / useTelegramViewport.
  */
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { setInitData } from "@/lib/telegram-init";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -128,6 +129,9 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
     const tg = window.Telegram?.WebApp;
 
     if (tg) {
+      // Expose the signed initData so API hooks can authenticate requests.
+      setInitData(tg.initData ?? null);
+
       // CRITICAL ORDER: expand first, then requestFullscreen, then ready().
       // Telegram shows the Mini App at the moment ready() is called.
       // Calling expand() before ready() means the app is revealed already at full height.
@@ -197,6 +201,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       };
     } else {
       // Dev / browser fallback — mock user, actual window height
+      setInitData(null);
       setCtx({
         isReady:           true,
         isTelegram:        false,
