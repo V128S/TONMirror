@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { GlassStrategyCard } from "@/components/portfolio/GlassStrategyCard";
 import { GlassEventRow, GLASS_FILTER_MAP } from "@/components/activity/GlassEventRow";
 import type { GlassFilter } from "@/components/activity/GlassEventRow";
+import { CopyConfirmSheet } from "@/components/activity/CopyConfirmSheet";
 import { formatUsd } from "@/lib/format";
 import type { ActivityEvent } from "@/hooks/useActivity";
 import type { Strategy } from "@/hooks/useStrategies";
@@ -35,6 +36,7 @@ export function GlassActivity({
   totalVolume,
 }: ActivityViewProps) {
   const [filter, setFilter] = useState<GlassFilter>("All");
+  const [confirmEvent, setConfirmEvent] = useState<ActivityEvent | null>(null);
 
   const activeStrategies = strategies?.filter((s) => !s.isPaused) ?? [];
 
@@ -103,12 +105,21 @@ export function GlassActivity({
             ) : filteredEvents.length === 0 ? (
               <div className="text-center py-12 text-subtle" style={{ fontSize: 12 }}>No events match this filter.</div>
             ) : (
-              filteredEvents.map((e, i) => <GlassEventRow key={e.id} event={e} last={i === filteredEvents.length - 1} />)
+              filteredEvents.map((e, i) => (
+                <GlassEventRow
+                  key={e.id}
+                  event={e}
+                  last={i === filteredEvents.length - 1}
+                  onConfirm={setConfirmEvent}
+                />
+              ))
             )}
           </Glass>
         </div>
         <div className="text-center text-subtle pt-1 pb-1" style={{ fontSize: 11 }}>End of feed</div>
       </div>
+
+      <CopyConfirmSheet event={confirmEvent} onClose={() => setConfirmEvent(null)} />
     </div>
   );
 }

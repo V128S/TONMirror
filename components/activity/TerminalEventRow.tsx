@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { QuoteCard } from "@/components/activity/QuoteCard";
 import { Button } from "@/components/ui/Button";
 import { Badge, DecisionBadge } from "@/components/ui/Badge";
 import { formatAmount, formatUsd, formatRelativeTime } from "@/lib/format";
@@ -35,8 +33,13 @@ function decTag(outcome: string) {
     : { c: "#ff3050", g: "✕", l: "REJECT" };
 }
 
-export function TermEventRow({ event }: { event: ActivityEvent }) {
-  const [showQuote, setShowQuote] = useState(false);
+export function TermEventRow({
+  event,
+  onConfirm,
+}: {
+  event: ActivityEvent;
+  onConfirm?: (event: ActivityEvent) => void;
+}) {
   const d = event.decision ? decTag(event.decision.outcome) : { c: "#4a8a5e", g: "·", l: "NONE" };
   const canQuote =
     event.execution !== null &&
@@ -75,21 +78,14 @@ export function TermEventRow({ event }: { event: ActivityEvent }) {
             ))}
           </div>
         )}
-        {canQuote && (
+        {canQuote && onConfirm && (
           <div className="mt-2 pl-[68px]">
-            <Button variant={showQuote ? "ghost" : "secondary"} size="sm" onClick={() => setShowQuote((p) => !p)}>
-              {showQuote ? "▴ HIDE QUOTE" : "▸ GET QUOTE"}
+            <Button variant="secondary" size="sm" onClick={() => onConfirm(event)}>
+              ▸ CONFIRM · COPY
             </Button>
           </div>
         )}
       </div>
-      {showQuote && event.execution && event.decision && (
-        <QuoteCard
-          executionId={event.execution.id} soldToken={event.soldToken} boughtToken={event.boughtToken}
-          plannedAmount={event.decision.plannedAmountDecimal ?? event.usdEstimate ?? 10}
-          slippageBps={100} onDismiss={() => setShowQuote(false)}
-        />
-      )}
     </div>
   );
 }

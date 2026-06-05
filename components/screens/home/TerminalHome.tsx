@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 
+import { CopyConfirmSheet } from "@/components/activity/CopyConfirmSheet";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { TermHeader }   from "@/components/terminal/TermHeader";
@@ -11,6 +13,7 @@ import { ScrambleText } from "@/components/fx/ScrambleText";
 import { TerminalLog }  from "@/components/fx/TerminalLog";
 
 import { formatUsd, formatRelativeTime, formatAmount } from "@/lib/format";
+import { type ActivityEvent } from "@/hooks/useActivity";
 import { type HomeViewProps } from "./GlassHome";
 
 const BOOT_LOG = [
@@ -31,6 +34,8 @@ export function TerminalHome({
   copiedToday,
   totalVolume,
 }: HomeViewProps) {
+  const [confirmEvent, setConfirmEvent] = useState<ActivityEvent | null>(null);
+
   const pending = (activity ?? []).filter(
     (e) =>
       e.execution != null &&
@@ -111,10 +116,10 @@ export function TerminalHome({
             <MirrorBar label="NEEDS · CONFIRM" />
             <div className="mt-1.5 space-y-1.5">
               {pending.slice(0, 3).map((e) => (
-                <Link
+                <button
                   key={e.id}
-                  href="/activity"
-                  className="flex items-center justify-between gap-2 border border-phos bg-phos/[0.06] px-2.5 py-2"
+                  onClick={() => setConfirmEvent(e)}
+                  className="w-full text-left flex items-center justify-between gap-2 border border-phos bg-phos/[0.06] px-2.5 py-2"
                 >
                   <div className="min-w-0">
                     <div className="text-[9px] text-phos-mid truncate">{e.leader.nickname} · {formatRelativeTime(e.timestamp)}</div>
@@ -125,7 +130,7 @@ export function TerminalHome({
                   <span className="tm-mono text-[10px] tracking-[0.15em] text-phos-hi shrink-0" style={{ textShadow: "0 0 6px #00ff66" }}>
                     CONFIRM ▸
                   </span>
-                </Link>
+                </button>
               ))}
             </div>
           </div>
@@ -146,6 +151,8 @@ export function TerminalHome({
           ▸ SCAN · NEW · LEADERS ◂
         </Link>
       </div>
+
+      <CopyConfirmSheet event={confirmEvent} onClose={() => setConfirmEvent(null)} />
     </div>
   );
 }

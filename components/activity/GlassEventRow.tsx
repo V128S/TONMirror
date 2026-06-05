@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { QuoteCard } from "@/components/activity/QuoteCard";
 import { DecisionBadge } from "@/components/ui/Badge";
 import { formatAmount, formatRelativeTime, formatUsd } from "@/lib/format";
 import { prettyName } from "@/components/glass/Avatar";
@@ -22,7 +21,15 @@ function decoFor(outcome: string | undefined) {
   }
 }
 
-export function GlassEventRow({ event, last }: { event: ActivityEvent; last: boolean }) {
+export function GlassEventRow({
+  event,
+  last,
+  onConfirm,
+}: {
+  event: ActivityEvent;
+  last: boolean;
+  onConfirm?: (event: ActivityEvent) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
   const d = decoFor(event.decision?.outcome);
   const usd = event.usdEstimate ?? 0;
@@ -105,15 +112,14 @@ export function GlassEventRow({ event, last }: { event: ActivityEvent; last: boo
               ))}
             </div>
           )}
-          {canQuote && event.execution && event.decision && (
-            <QuoteCard
-              executionId={event.execution.id}
-              soldToken={event.soldToken}
-              boughtToken={event.boughtToken}
-              plannedAmount={event.decision.plannedAmountDecimal ?? event.usdEstimate ?? 10}
-              slippageBps={100}
-              onDismiss={() => setExpanded(false)}
-            />
+          {canQuote && onConfirm && (
+            <button
+              onClick={() => onConfirm(event)}
+              className="mt-1 w-full rounded-full py-2.5 text-center"
+              style={{ fontSize: 13, fontWeight: 600, background: "rgb(var(--text1))", color: "rgb(var(--bg))" }}
+            >
+              Confirm copy →
+            </button>
           )}
         </div>
       )}

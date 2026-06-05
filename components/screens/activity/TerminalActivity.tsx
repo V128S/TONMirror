@@ -11,7 +11,9 @@ import Link from "next/link";
 import { TermStrategyRow } from "@/components/portfolio/TerminalStrategyRow";
 import { TermEventRow, TERM_FILTER_MAP } from "@/components/activity/TerminalEventRow";
 import type { TermFilter } from "@/components/activity/TerminalEventRow";
+import { CopyConfirmSheet } from "@/components/activity/CopyConfirmSheet";
 import { formatUsd } from "@/lib/format";
+import type { ActivityEvent } from "@/hooks/useActivity";
 import type { ActivityViewProps } from "./GlassActivity";
 
 export function TerminalActivity({
@@ -25,6 +27,7 @@ export function TerminalActivity({
   totalVolume,
 }: ActivityViewProps) {
   const [filter, setFilter] = useState<TermFilter>("ALL");
+  const [confirmEvent, setConfirmEvent] = useState<ActivityEvent | null>(null);
 
   const activeStrategies = strategies?.filter((s) => !s.isPaused) ?? [];
 
@@ -104,12 +107,14 @@ export function TerminalActivity({
         ) : filteredEvents.length === 0 ? (
           <div className="text-center py-12"><p className="tm-disp text-phos-mid">▢ NO·EVENTS ▢</p></div>
         ) : (
-          <div className="space-y-2">{filteredEvents.map((e) => <TermEventRow key={e.id} event={e} />)}</div>
+          <div className="space-y-2">{filteredEvents.map((e) => <TermEventRow key={e.id} event={e} onConfirm={setConfirmEvent} />)}</div>
         )}
         <div className="text-center text-[9px] text-phos-mid tm-mono pt-2">
           ─── END · OF · TAPE ··· <BlinkCaret /> ───
         </div>
       </div>
+
+      <CopyConfirmSheet event={confirmEvent} onClose={() => setConfirmEvent(null)} />
     </div>
   );
 }

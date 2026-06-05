@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 
+import { CopyConfirmSheet } from "@/components/activity/CopyConfirmSheet";
 import { Glass }        from "@/components/glass/Glass";
 import { PageTitle }    from "@/components/glass/PageTitle";
 import { SectionLabel } from "@/components/glass/SectionLabel";
@@ -35,6 +37,8 @@ export function GlassHome({
   copiedToday,
   totalVolume,
 }: HomeViewProps) {
+  const [confirmEvent, setConfirmEvent] = useState<ActivityEvent | null>(null);
+
   const pending = (activity ?? []).filter(
     (e) =>
       e.execution != null &&
@@ -113,10 +117,10 @@ export function GlassHome({
             <SectionLabel right={`${pending.length}`}>Needs your attention</SectionLabel>
             <Glass hi radius={22} padding={4}>
               {pending.slice(0, 3).map((e, i, arr) => (
-                <Link
-                  href="/activity"
+                <button
+                  onClick={() => setConfirmEvent(e)}
                   key={e.id}
-                  className="grid items-center gap-3 px-3 py-3"
+                  className="w-full text-left grid items-center gap-3 px-3 py-3"
                   style={{
                     gridTemplateColumns: "1fr auto",
                     borderBottom: i < arr.length - 1 ? "0.5px solid rgb(var(--hair) / 0.08)" : "none",
@@ -136,7 +140,7 @@ export function GlassHome({
                   >
                     Confirm →
                   </span>
-                </Link>
+                </button>
               ))}
             </Glass>
           </div>
@@ -200,6 +204,8 @@ export function GlassHome({
           Discover leaders
         </Link>
       </div>
+
+      <CopyConfirmSheet event={confirmEvent} onClose={() => setConfirmEvent(null)} />
     </div>
   );
 }
