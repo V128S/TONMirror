@@ -8,10 +8,9 @@ import { PageTitle }    from "@/components/glass/PageTitle";
 import { SectionLabel } from "@/components/glass/SectionLabel";
 import { Sparkline as GlassSparkline } from "@/components/glass/Sparkline";
 import { Avatar, prettyName } from "@/components/glass/Avatar";
-import { Badge as GlassBadge, RiskBadge } from "@/components/ui/Badge";
+import { Badge as GlassBadge, RiskBadge, DecisionBadge } from "@/components/ui/Badge";
 import { Skeleton as GlassSkeleton } from "@/components/ui/Skeleton";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { DecisionBadge } from "@/components/ui/Badge";
 import { QuoteCard } from "@/components/activity/QuoteCard";
 
 import { formatPercent, formatUsd, formatAmount, formatRelativeTime } from "@/lib/format";
