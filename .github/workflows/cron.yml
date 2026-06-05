@@ -1,0 +1,39 @@
+name: TonMirror cron
+
+# Drives the copy-trade loop on the deployed app. GitHub's minimum schedule
+# granularity is ~5 min (and runs may be delayed under load). For tighter
+# intervals use cron-job.org / QStash / Vercel Pro instead.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+# Don't pile up overlapping runs (a poll can take ~1–2 min).
+concurrency:
+  group: tonmirror-cron
+  cancel-in-progress: false
+
+env:
+  APP_URL: https://tonmirror.vercel.app
+
+jobs:
+  cron:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Poll leader trades
+        run: |
+          code=$(curl -sS -m 290 -o /tmp/poll.out -w "%{http_code}" \
+            -X POST -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "$APP_URL/api/cron/poll-trades")
+          echo "poll-trades → HTTP $code"; cat /tmp/poll.out; echo
+          [ "$code" = "200" ] || exit 1
+
+      - name: Confirm submitted executions
+        if: always()
+        run: |
+          code=$(curl -sS -m 290 -o /tmp/confirm.out -w "%{http_code}" \
+            -X POST -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "$APP_URL/api/cron/confirm-executions")
+          echo "confirm-executions → HTTP $code"; cat /tmp/confirm.out; echo
+          [ "$code" = "200" ] || exit 1
