@@ -2,7 +2,7 @@
  * Idempotent seed — safe to run multiple times.
  * Uses upsert throughout to avoid duplicates.
  */
-import { PrismaClient, LeaderSourceType, TradeSourceProvider, TradeStatus, DecisionType, ExecutionStatus, StrategyMode } from "@prisma/client";
+import { PrismaClient, LeaderSourceType, TradeSourceProvider, TradeStatus, StrategyMode } from "@prisma/client";
 
 const prisma = new PrismaClient();
 

@@ -65,7 +65,7 @@ export type NotifyDecisionInput = {
 export const telegramNotifyService = {
   async notifyDecision(input: NotifyDecisionInput): Promise<void> {
     // Look up the user's telegramId
-    let telegramId: string | null = null;
+    let telegramId: string | null;
     try {
       const user = await prisma.user.findUnique({
         where:  { id: input.userId },

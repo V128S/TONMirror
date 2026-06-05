@@ -161,7 +161,6 @@ export class OmnistonExecutionProvider implements ExecutionProvider {
       throw new Error("rawQuote is required for live execution preparation");
     }
 
-    const rawQuote = request._raw as Quote;
     const transport = new WebSocketTransport(OMNISTON_WS_URL);
     const client    = new Omniston({ apiUrl: OMNISTON_WS_URL, transport });
 

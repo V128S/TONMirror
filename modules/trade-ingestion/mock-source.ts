@@ -14,7 +14,6 @@ import type {
 
 // ─── Token sets ───────────────────────────────────────────────────────────────
 
-const STABLE_TOKENS = new Set(["USDT", "USDC"]);
 const BASE_TOKENS   = new Set(["TON", "USDT", "USDC"]);
 
 // ─── Template pool ────────────────────────────────────────────────────────────

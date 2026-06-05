@@ -133,9 +133,17 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       // Calling expand() before ready() means the app is revealed already at full height.
       tg.expand();
 
+      // Newer Bot API methods not present in the installed WebApp typings.
+      const tgx = tg as unknown as {
+        requestFullscreen?: () => void;
+        isFullscreen?: boolean;
+        onEvent?: (event: string, cb: () => void) => void;
+        offEvent?: (event: string, cb: () => void) => void;
+      };
+
       const tryFullscreen = () => {
-        if (typeof (tg as any).requestFullscreen === "function") {
-          try { (tg as any).requestFullscreen(); } catch { /* ignore */ }
+        if (typeof tgx.requestFullscreen === "function") {
+          try { tgx.requestFullscreen(); } catch { /* ignore */ }
         }
       };
       tryFullscreen();
@@ -150,7 +158,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         height:       tg.viewportHeight,
         stableHeight: tg.viewportStableHeight,
         isExpanded:   tg.isExpanded,
-        isFullscreen: !!(tg as any).isFullscreen,
+        isFullscreen: !!tgx.isFullscreen,
       });
 
       const update = () =>
@@ -164,8 +172,8 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
           expand:     () => tg.expand(),
           close:      () => tg.close(),
           requestFullscreen: () => {
-            if (typeof (tg as any).requestFullscreen === "function") {
-              try { (tg as any).requestFullscreen(); } catch { /* ignore */ }
+            if (typeof tgx.requestFullscreen === "function") {
+              try { tgx.requestFullscreen(); } catch { /* ignore */ }
             } else {
               tg.expand();
             }
@@ -176,8 +184,8 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       tg.onEvent("viewportChanged",    update);
       tg.onEvent("themeChanged",       update);
       // fullscreenChanged available in newer Bot API versions
-      if (typeof (tg as any).onEvent === "function") {
-        try { (tg as any).onEvent("fullscreenChanged", update); } catch { /* ignore */ }
+      if (typeof tgx.onEvent === "function") {
+        try { tgx.onEvent("fullscreenChanged", update); } catch { /* ignore */ }
       }
 
       return () => {
@@ -185,7 +193,7 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         clearTimeout(t2);
         tg.offEvent("viewportChanged", update);
         tg.offEvent("themeChanged",    update);
-        try { (tg as any).offEvent("fullscreenChanged", update); } catch { /* ignore */ }
+        try { tgx.offEvent?.("fullscreenChanged", update); } catch { /* ignore */ }
       };
     } else {
       // Dev / browser fallback — mock user, actual window height
