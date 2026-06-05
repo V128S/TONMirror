@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
       await sendMessage(chatId, "⚡ <b>Trade feed</b>\n\nLatest trading signals and decisions:", {
         reply_markup: {
           inline_keyboard: [[
-            { text: "⚡ Activity feed", web_app: webApp("/market?tab=activity") },
+            { text: "⚡ Activity feed", web_app: webApp("/activity") },
           ]],
         },
       });

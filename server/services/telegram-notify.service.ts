@@ -100,7 +100,7 @@ export const telegramNotifyService = {
         {
           reply_markup: {
             inline_keyboard: [[
-              { text: "🔮 Review trade", web_app: webApp("/market?tab=activity") },
+              { text: "🔮 Review trade", web_app: webApp("/activity") },
             ]],
           },
         },
@@ -117,7 +117,7 @@ export const telegramNotifyService = {
         {
           reply_markup: {
             inline_keyboard: [[
-              { text: "📊 View Activity", web_app: webApp("/market?tab=activity") },
+              { text: "📊 View Activity", web_app: webApp("/activity") },
             ]],
           },
         },
