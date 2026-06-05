@@ -11,8 +11,9 @@
  * address registry that the webhook route can query to decide whether an
  * incoming event is for a tracked wallet.
  *
- * `getRecentTrades` is a stub — a full implementation would query the
- * TON indexer REST API using TON_API_KEY.
+ * `getRecentTrades` is a real TonAPI v2 implementation — it queries
+ * `/v2/accounts/{address}/events` (using TON_API_KEY when set) and normalizes
+ * DEX swap actions into NormalizedTradeEvent rows.
  *
  * Enabled only when NEXT_PUBLIC_ENABLE_LIVE_SOURCE=true.
  * When disabled the webhook route returns 403 before ever touching this class.

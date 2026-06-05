@@ -13,8 +13,8 @@ const bodySchema = z.object({
  * POST /api/execution/prepare
  * Builds a PreparedTransaction (messages) for TON Connect signing.
  *
- * Phase 3: wires real Omniston tonBuildSwap when NEXT_PUBLIC_ENABLE_LIVE_SOURCE=true.
- * Phase 4 TODO: add walletAddress validation (require when live source is on).
+ * Uses real Omniston tonBuildSwap when NEXT_PUBLIC_ENABLE_LIVE_SOURCE=true, and
+ * requires walletAddress in that case (live swaps build for a concrete wallet).
  */
 export async function POST(req: Request) {
   try {

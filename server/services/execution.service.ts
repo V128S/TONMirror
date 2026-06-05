@@ -1,8 +1,9 @@
 /**
- * ExecutionService — orchestrates quote fetching and tx preparation.
+ * ExecutionService — orchestrates quote fetching, tx preparation, and submit.
  *
- * Phase 3: wires up Omniston module (real or mock, gated by env flag).
- * Phase 4 TODO: wire `submitExecution` to TON Connect broadcast.
+ * Omniston module (real or mock) is gated by NEXT_PUBLIC_ENABLE_LIVE_SOURCE.
+ * `submitExecution` records the TON Connect-signed BoC and extracts its
+ * external-message hash; `confirmation.service` later resolves it on-chain.
  */
 import { executionsRepo } from "@/server/repositories/executions.repo";
 import { getQuoteProvider, getExecutionProvider } from "@/modules/omniston";
