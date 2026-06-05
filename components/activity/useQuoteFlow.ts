@@ -1,0 +1,100 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useExecutionFlow } from "@/hooks/useExecution";
+import { useWallet, useWalletActions } from "@/hooks/useWallet";
+
+export interface QuoteFlowParams {
+  executionId:   string;
+  soldToken:     string;
+  boughtToken:   string;
+  plannedAmount: number;
+  slippageBps?:  number;
+}
+
+export type QuoteStep = "idle" | "quoted" | "prepared" | "submitted";
+
+/**
+ * Encapsulates the quote → prepare → sign → submit execution flow so it can be
+ * rendered by either the terminal or the glass presentation of the confirm
+ * sheet. Holds no theme/markup concerns — only state and handlers.
+ */
+export function useQuoteFlow({
+  executionId,
+  soldToken,
+  boughtToken,
+  plannedAmount,
+  slippageBps = 100,
+}: QuoteFlowParams) {
+  const flow    = useExecutionFlow();
+  const wallet  = useWallet();
+  const actions = useWalletActions();
+  const [step, setStep]           = useState<QuoteStep>("idle");
+  const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (step !== "idle") return;
+    flow
+      .getQuote({ executionId, soldToken, boughtToken, amountIn: plannedAmount, slippageBps })
+      .then(() => setStep("quoted"))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleConfirm = async () => {
+    if (!flow.quote) return;
+    await flow.prepare({
+      executionId,
+      quoteId:       flow.quote.quoteId,
+      walletAddress: wallet.address ?? undefined,
+    });
+    setStep("prepared");
+  };
+
+  const handleRefresh = () => {
+    flow.reset();
+    setStep("idle");
+    flow
+      .getQuote({ executionId, soldToken, boughtToken, amountIn: plannedAmount, slippageBps })
+      .then(() => setStep("quoted"))
+      .catch(() => {});
+  };
+
+  /**
+   * Real TON Connect send flow: sendTransaction() opens the wallet for signing
+   * and broadcasts; then POST /api/execution/submit records the signed BoC.
+   */
+  const handleSend = async () => {
+    if (!flow.prepared) return;
+    setIsSending(true);
+    setSendError(null);
+    try {
+      const result = await actions.sendTransaction({
+        messages:   flow.prepared.messages,
+        validUntil: flow.prepared.validUntil,
+      });
+      await flow.submit({ executionId, boc: result.boc });
+      setStep("submitted");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Transaction rejected or failed";
+      setSendError(msg);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const expiresAt = flow.quote
+    ? typeof flow.quote.expiresAt === "string"
+      ? new Date(flow.quote.expiresAt)
+      : flow.quote.expiresAt
+    : null;
+  const isExpired = expiresAt ? Date.now() > expiresAt.getTime() : false;
+
+  return {
+    flow, wallet, actions,
+    step, isSending, sendError,
+    handleConfirm, handleRefresh, handleSend,
+    isExpired,
+  };
+}
