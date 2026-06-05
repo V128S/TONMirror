@@ -8,6 +8,7 @@
 import { executionsRepo } from "@/server/repositories/executions.repo";
 import { getQuoteProvider, getExecutionProvider } from "@/modules/omniston";
 import { usdToTokenAmount } from "@/server/services/pricing.service";
+import { assertSufficientBalance } from "@/server/services/balance.service";
 
 export type QuoteInput = {
   executionId: string;
@@ -88,6 +89,22 @@ export const executionService = {
     // Recover raw quote from stored routeJson if live
     const stored  = execution.routeJson as Record<string, unknown> | null;
     const rawQuote = stored?._raw ?? undefined;
+
+    // Pre-flight balance / gas check on the live path. The stored quote carries
+    // the sold token and its decimal amount (already token units, not USD), so
+    // we can verify the wallet can afford the swap before opening it for signing.
+    if (
+      process.env.NEXT_PUBLIC_ENABLE_LIVE_SOURCE === "true" &&
+      input.walletAddress &&
+      typeof stored?.soldToken === "string" &&
+      typeof stored?.amountInDecimal === "number"
+    ) {
+      await assertSufficientBalance({
+        walletAddress:   input.walletAddress,
+        soldToken:       stored.soldToken,
+        amountInDecimal: stored.amountInDecimal,
+      });
+    }
 
     const provider = await getExecutionProvider();
 

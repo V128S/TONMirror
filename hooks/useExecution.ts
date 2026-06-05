@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { activityKeys } from "./useActivity";
+import { authHeaders } from "@/lib/telegram-init";
 import type { NormalizedQuote } from "@/modules/omniston/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -50,7 +51,7 @@ export type SubmitResult = {
 async function fetchQuoteAPI(input: QuoteRequestInput): Promise<NormalizedQuote> {
   const res  = await fetch("/api/execution/quote", {
     method:  "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body:    JSON.stringify({
       executionId: input.executionId,
       soldToken:   input.soldToken,
@@ -67,7 +68,7 @@ async function fetchQuoteAPI(input: QuoteRequestInput): Promise<NormalizedQuote>
 async function submitAPI(input: SubmitInput): Promise<SubmitResult> {
   const res  = await fetch("/api/execution/submit", {
     method:  "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body:    JSON.stringify({ executionId: input.executionId, boc: input.boc }),
   });
   const json = await res.json();
@@ -78,7 +79,7 @@ async function submitAPI(input: SubmitInput): Promise<SubmitResult> {
 async function prepareAPI(input: PrepareRequestInput): Promise<PreparedTransaction> {
   const res  = await fetch("/api/execution/prepare", {
     method:  "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body:    JSON.stringify({
       executionId:   input.executionId,
       quoteId:       input.quoteId,

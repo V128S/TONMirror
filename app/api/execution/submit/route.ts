@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { executionService } from "@/server/services/execution.service";
+import { requireExecutionAccess } from "@/server/auth/require-execution-access";
 
 const bodySchema = z.object({
   executionId: z.string().cuid(),
@@ -33,6 +34,11 @@ export async function POST(req: Request) {
         { error: parsed.error.flatten().fieldErrors },
         { status: 422 },
       );
+    }
+
+    const access = await requireExecutionAccess(req, parsed.data.executionId);
+    if (!access.ok) {
+      return NextResponse.json({ error: access.error }, { status: access.status });
     }
 
     const result = await executionService.submitExecution(
