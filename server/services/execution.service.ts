@@ -7,11 +7,17 @@
  */
 import { executionsRepo } from "@/server/repositories/executions.repo";
 import { getQuoteProvider, getExecutionProvider } from "@/modules/omniston";
+import { usdToTokenAmount } from "@/server/services/pricing.service";
 
 export type QuoteInput = {
   executionId: string;
   soldToken:   string;
   boughtToken: string;
+  /**
+   * USD-denominated planned copy size (CopyDecision.plannedAmountDecimal).
+   * On the live path this is converted to the sold-token's own decimal amount
+   * before quoting; in demo it is passed through to the mock provider as-is.
+   */
   amountIn:    number;
   slippageBps: number;
 };
@@ -31,10 +37,19 @@ export const executionService = {
   async fetchQuote(input: QuoteInput) {
     const provider = await getQuoteProvider();
 
+    // The planned amount arrives in USD. On the live path Omniston needs the
+    // sold-token's own decimal amount, so convert USD → token units (e.g. a
+    // "$10" copy of a TON sale becomes ~3.3 TON, not 10 TON). Demo passes the
+    // value straight through so its deterministic mock numbers are unchanged.
+    const liveEnabled = process.env.NEXT_PUBLIC_ENABLE_LIVE_SOURCE === "true";
+    const amountInDecimal = liveEnabled
+      ? await usdToTokenAmount(input.amountIn, input.soldToken)
+      : input.amountIn;
+
     const quote = await provider.getQuote({
       soldToken:       input.soldToken,
       boughtToken:     input.boughtToken,
-      amountInDecimal: input.amountIn,
+      amountInDecimal,
       slippageBps:     input.slippageBps,
     });
 

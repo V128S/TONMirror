@@ -20,10 +20,13 @@ import type { NormalizedTradeEvent } from "@/modules/trade-ingestion/types";
 import { leadersRepo }    from "@/server/repositories/leaders.repo";
 import { decisionService } from "@/server/services/decision.service";
 import { getTonUsd }       from "@/server/services/pricing.service";
+import { isSupportedPair } from "@/modules/omniston/token-map";
 
 export type PollResult = {
   leaders:    number;
   eventsSeen: number;
+  /** Live-path events ignored because their pair isn't in SUPPORTED_PAIRS */
+  skipped:    number;
   decisions:  number;
   durationMs: number;
 };
@@ -47,6 +50,7 @@ export const ingestionService = {
     const tonUsd = liveEnabled ? await getTonUsd() : 0;
 
     let eventsSeen = 0;
+    let skipped    = 0;
     let decisions  = 0;
 
     for (const leader of leaders) {
@@ -54,7 +58,17 @@ export const ingestionService = {
         const trades = await source.getRecentTrades(leader.address);
 
         for (const event of trades) {
-          const priced = liveEnabled ? repriceWithTonUsd(event, tonUsd) : event;
+          eventsSeen += 1;
+
+          // On the live path we copy only the vetted SUPPORTED_PAIRS; anything
+          // else (an unvetted whale token) is ignored — never quoted or executed.
+          // Demo keeps its full seeded variety so the control panel still works.
+          if (liveEnabled && !isSupportedPair(event.soldToken, event.boughtToken)) {
+            skipped += 1;
+            continue;
+          }
+
+          const priced = liveEnabled ? repriceEvent(event, tonUsd) : event;
 
           // The source fills leaderWalletId from its own registry (often just
           // the address when not subscribed). Authoritatively bind it to the
@@ -65,7 +79,6 @@ export const ingestionService = {
             leaderAddress:  leader.address,
           });
 
-          eventsSeen += 1;
           decisions  += created;
         }
       } catch (err) {
@@ -76,6 +89,7 @@ export const ingestionService = {
     return {
       leaders:    leaders.length,
       eventsSeen,
+      skipped,
       decisions,
       durationMs: Date.now() - start,
     };
@@ -85,13 +99,22 @@ export const ingestionService = {
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
 /**
- * Recompute the USD estimate for TON-involving trades from a single live
- * TON→USD rate. Non-TON pairs keep whatever the source provided.
+ * Recompute the USD estimate for a supported-pair trade.
+ *
+ * Prefers the USDT leg (≈ $1) when present — this is what makes tsTON→USDT
+ * (no TON leg) priceable — and otherwise falls back to the live TON→USD rate
+ * for the TON leg. Anything without a USDT or TON leg keeps the source value.
  */
-function repriceWithTonUsd(
+function repriceEvent(
   event: NormalizedTradeEvent,
   tonUsd: number,
 ): NormalizedTradeEvent {
+  if (event.soldToken === "USDT") {
+    return { ...event, usdEstimate: event.soldAmountDecimal };
+  }
+  if (event.boughtToken === "USDT") {
+    return { ...event, usdEstimate: event.boughtAmountDecimal };
+  }
   if (event.soldToken === "TON") {
     return { ...event, usdEstimate: event.soldAmountDecimal * tonUsd };
   }

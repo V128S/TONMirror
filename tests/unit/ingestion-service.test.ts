@@ -23,6 +23,11 @@ vi.mock("@/server/services/decision.service", () => ({
   decisionService: { processTradeEvent: vi.fn() },
 }));
 
+// Live path consults pricing — stub it so no Omniston websocket is opened.
+vi.mock("@/server/services/pricing.service", () => ({
+  getTonUsd: vi.fn(async () => 3),
+}));
+
 import { ingestionService } from "@/server/services/ingestion.service";
 import { leadersRepo }      from "@/server/repositories/leaders.repo";
 import { decisionService }  from "@/server/services/decision.service";
@@ -106,6 +111,26 @@ describe("ingestionService.pollAllLeaders", () => {
 
     expect(result.eventsSeen).toBe(1);
     expect(result.decisions).toBe(0);
+  });
+
+  it("on the live path, ignores trades outside SUPPORTED_PAIRS", async () => {
+    vi.stubEnv("NEXT_PUBLIC_ENABLE_LIVE_SOURCE", "true");
+    vi.mocked(leadersRepo.listFollowedActive).mockResolvedValue([LEADER]);
+    getRecentTrades.mockResolvedValue([
+      tradeEvent({ externalId: "ok",  soldToken: "TON", boughtToken: "USDT" }), // supported
+      tradeEvent({ externalId: "bad", soldToken: "TON", boughtToken: "NOT" }),  // not vetted
+    ]);
+    vi.mocked(decisionService.processTradeEvent).mockResolvedValue(1);
+
+    const result = await ingestionService.pollAllLeaders();
+
+    expect(result.eventsSeen).toBe(2);
+    expect(result.skipped).toBe(1);
+    expect(decisionService.processTradeEvent).toHaveBeenCalledOnce();
+    const passed = vi.mocked(decisionService.processTradeEvent).mock.calls[0][0];
+    expect(passed.boughtToken).toBe("USDT");
+
+    vi.unstubAllEnvs();
   });
 
   it("never throws: a failing leader is logged and the loop continues", async () => {

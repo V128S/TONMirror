@@ -51,7 +51,7 @@ describe("GET|POST /api/cron/poll-trades", () => {
 
   it("runs the poll and returns the summary with a valid secret", async () => {
     vi.mocked(ingestionService.pollAllLeaders).mockResolvedValue({
-      leaders: 2, eventsSeen: 5, decisions: 3, durationMs: 42,
+      leaders: 2, eventsSeen: 5, skipped: 0, decisions: 3, durationMs: 42,
     });
 
     const res  = await GET(makeRequest({ authorization: `Bearer ${SECRET}` }));
@@ -64,7 +64,7 @@ describe("GET|POST /api/cron/poll-trades", () => {
 
   it("supports POST for external schedulers", async () => {
     vi.mocked(ingestionService.pollAllLeaders).mockResolvedValue({
-      leaders: 0, eventsSeen: 0, decisions: 0, durationMs: 1,
+      leaders: 0, eventsSeen: 0, skipped: 0, decisions: 0, durationMs: 1,
     });
 
     const res = await POST(makeRequest({ authorization: `Bearer ${SECRET}` }));
