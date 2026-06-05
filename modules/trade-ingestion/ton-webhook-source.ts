@@ -21,6 +21,7 @@
 
 import type { LeaderTradeSource, NormalizedTradeEvent, TradeEventHandler } from "./types";
 import { parseTonWebhookPayload } from "./ton-payload-parser";
+import { fetchWithRetry } from "@/lib/fetch-retry";
 
 export class TonWebhookTradeSource implements LeaderTradeSource {
   /** Addresses currently being watched: address → leaderWalletId */
@@ -73,7 +74,7 @@ export class TonWebhookTradeSource implements LeaderTradeSource {
         `https://tonapi.io/v2/accounts/${encodeURIComponent(address)}/events` +
         `?limit=20&subject_only=true&initiator=true`;
 
-      const res = await fetch(url, { headers });
+      const res = await fetchWithRetry(url, { headers });
       if (!res.ok) {
         console.warn(`[TonWebhookTradeSource] TonAPI ${res.status} for ${address}`);
         return [];

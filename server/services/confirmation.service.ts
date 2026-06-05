@@ -18,6 +18,7 @@
 import { prisma } from "@/lib/prisma";
 import { executionsRepo } from "@/server/repositories/executions.repo";
 import { getServerEnv }   from "@/lib/env";
+import { fetchWithRetry } from "@/lib/fetch-retry";
 
 export type ConfirmResult = {
   checked:    number;
@@ -109,7 +110,7 @@ async function fetchTransactionByMessageHash(
 
   let res: Response;
   try {
-    res = await fetch(url, { headers });
+    res = await fetchWithRetry(url, { headers });
   } catch {
     return null;
   }
