@@ -62,6 +62,12 @@ export const decisionService = {
 
     for (const strategy of strategies) {
       try {
+        // 2.5. Idempotency: skip if we already decided on this trade for this strategy.
+        // Makes the ingestion cron safe to re-run over the same recent window.
+        if (await decisionsRepo.existsFor(tradeRecord.id, strategy.id)) {
+          continue;
+        }
+
         // 3. Check daily spend for cap enforcement
         const dailySpend = await strategiesRepo.dailySpendUsd(strategy.id);
 

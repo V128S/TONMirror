@@ -108,4 +108,18 @@ export const leadersRepo = {
     });
     return new Set(rows.map((r) => r.leaderWalletId));
   },
+
+  /**
+   * Distinct active leaders that at least one user currently follows
+   * (has a non-paused FollowStrategy). This is the set the ingestion cron
+   * polls — no point fetching trades for leaders nobody mirrors.
+   */
+  async listFollowedActive(): Promise<{ id: string; address: string; nickname: string }[]> {
+    const rows = await prisma.followStrategy.findMany({
+      where:    { isPaused: false, leaderWallet: { isActive: true } },
+      select:   { leaderWallet: { select: { id: true, address: true, nickname: true } } },
+      distinct: ["leaderWalletId"],
+    });
+    return rows.map((r) => r.leaderWallet);
+  },
 };

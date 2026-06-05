@@ -65,6 +65,9 @@ export class TonWebhookTradeSource implements LeaderTradeSource {
       const headers: Record<string, string> = { Accept: "application/json" };
       if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
 
+      // Live TON/USD rate (cached) for USD estimates — feeds the daily-spend cap.
+      const tonUsd = await getTonUsdRate(apiKey);
+
       const url =
         `https://tonapi.io/v2/accounts/${encodeURIComponent(address)}/events` +
         `?limit=20&subject_only=true&initiator=true`;
@@ -122,12 +125,12 @@ export class TonWebhookTradeSource implements LeaderTradeSource {
             ? Number(BigInt(s.ton_out!) * BigInt(1000) / NANO) / 1000
             : Number(BigInt(s.amount_out)) / Math.pow(10, boughtDecimalsVal);
 
-          // Rough USD estimate (TON at ~$3, jetton at unknown — use TON side)
-          const ROUGH_TON_USD = 3;
+          // USD estimate from the live TON/USD rate, using the TON leg of the
+          // swap. Jetton-to-jetton swaps (no TON leg) stay undefined.
           const usdEstimate = isTonIn
-            ? soldAmountDecimal * ROUGH_TON_USD
+            ? soldAmountDecimal * tonUsd
             : isTonOut
-              ? boughtAmountDecimal * ROUGH_TON_USD
+              ? boughtAmountDecimal * tonUsd
               : undefined;
 
           const externalId = `${address}_${event.event_id}_${soldToken}_${boughtToken}`;
@@ -211,5 +214,45 @@ export class TonWebhookTradeSource implements LeaderTradeSource {
 
   watchedCount(): number {
     return this.watchedWallets.size;
+  }
+}
+
+// ─── TON/USD rate (cached) ────────────────────────────────────────────────────
+
+/** Fallback used only when the rates endpoint is unreachable. */
+const TON_USD_FALLBACK = 3;
+/** In-memory cache TTL — avoids hammering the rates endpoint across leaders. */
+const RATE_TTL_MS = 60_000;
+
+let rateCache: { value: number; at: number } | null = null;
+
+/**
+ * Fetches the current TON/USD price from TonAPI `/v2/rates`, cached for 60s.
+ * Never throws — returns the last good value or a conservative fallback so USD
+ * estimates (and the daily-spend cap) keep working if pricing is unavailable.
+ */
+async function getTonUsdRate(apiKey: string): Promise<number> {
+  const now = Date.now();
+  if (rateCache && now - rateCache.at < RATE_TTL_MS) return rateCache.value;
+
+  try {
+    const headers: Record<string, string> = { Accept: "application/json" };
+    if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+
+    const res = await fetch("https://tonapi.io/v2/rates?tokens=ton&currencies=usd", { headers });
+    if (!res.ok) return rateCache?.value ?? TON_USD_FALLBACK;
+
+    const json = (await res.json()) as {
+      rates?: { TON?: { prices?: { USD?: number } } };
+    };
+    const price = json.rates?.TON?.prices?.USD;
+
+    if (typeof price === "number" && price > 0) {
+      rateCache = { value: price, at: now };
+      return price;
+    }
+    return rateCache?.value ?? TON_USD_FALLBACK;
+  } catch {
+    return rateCache?.value ?? TON_USD_FALLBACK;
   }
 }

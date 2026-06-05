@@ -115,14 +115,15 @@ export const executionService = {
       return { id: execution.id, status: execution.status, txHash: execution.txHash };
     }
 
-    // Store first 64 chars of the BoC as a searchable reference.
-    // A BoC is a base64-encoded bag-of-cells; the wallet app has already
-    // broadcast it so no separate network call is needed here.
-    const bocRef = signedBoc.slice(0, 64);
+    // Resolve the external-message hash from the signed BoC so the confirmation
+    // sweep can look the tx up on TonAPI. Falls back to a BoC prefix (demo / parse
+    // failure) — the sweep treats non-hash values as "skip", never failing them.
+    const msgHash = await extractMessageHash(signedBoc);
+    const txHash  = msgHash ?? signedBoc.slice(0, 64);
 
     const updated = await executionsRepo.update(executionId, {
       status: "submitted",
-      txHash: bocRef,
+      txHash,
     });
 
     return {
@@ -132,3 +133,23 @@ export const executionService = {
     };
   },
 };
+
+// ─── Internal helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Computes the hash (hex) of a signed external-message BoC returned by
+ * TON Connect `sendTransaction()`. This hash is what TonAPI indexes, so the
+ * confirmation sweep can resolve the on-chain transaction from it.
+ *
+ * Returns null on any parse error (e.g. demo/mock BoCs) so the caller can fall
+ * back to a non-hash reference that the sweep will skip.
+ */
+async function extractMessageHash(signedBoc: string): Promise<string | null> {
+  try {
+    const { Cell } = await import("@ton/core");
+    const cell = Cell.fromBase64(signedBoc);
+    return cell.hash().toString("hex");
+  } catch {
+    return null;
+  }
+}

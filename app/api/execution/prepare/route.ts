@@ -28,6 +28,17 @@ export async function POST(req: Request) {
       );
     }
 
+    // Live swaps must be built for a concrete wallet; demo/mock does not need one.
+    if (
+      process.env.NEXT_PUBLIC_ENABLE_LIVE_SOURCE === "true" &&
+      !parsed.data.walletAddress
+    ) {
+      return NextResponse.json(
+        { error: "walletAddress is required when the live source is enabled" },
+        { status: 422 },
+      );
+    }
+
     const prepared = await executionService.prepareExecution(parsed.data);
     return NextResponse.json({ data: prepared });
   } catch (err) {

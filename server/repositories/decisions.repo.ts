@@ -26,6 +26,19 @@ export const decisionsRepo = {
     });
   },
 
+  /**
+   * Idempotency guard for the ingestion loop: returns true when a decision
+   * already exists for this (tradeEvent, strategy) pair. Re-polling the same
+   * recent window must not create duplicate decisions.
+   */
+  async existsFor(tradeEventId: string, strategyId: string): Promise<boolean> {
+    const found = await prisma.copyDecision.findFirst({
+      where:  { tradeEventId, strategyId },
+      select: { id: true },
+    });
+    return found !== null;
+  },
+
   async listByUser(userId: string, limit = 50) {
     return prisma.copyDecision.findMany({
       where:   { userId },

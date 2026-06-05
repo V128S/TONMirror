@@ -55,5 +55,6 @@ CLAUDE.md
 *.tgz
 .vercel
 .playwright-mcp/
-screenshot-*.png
+# Root-level screenshots / design artifacts (keep app/ and public/ assets)
+/*.png
 test-results/

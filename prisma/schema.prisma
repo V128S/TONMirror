@@ -3,8 +3,11 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // Pooled connection (Supabase Supavisor, port 6543) — used at runtime on serverless.
+  url       = env("DATABASE_URL")
+  // Direct connection (port 5432) — used by `prisma migrate` / `db seed`.
+  directUrl = env("DIRECT_URL")
 }
 
 // ─── Enums ───────────────────────────────────────────────────────────────────

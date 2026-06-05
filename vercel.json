@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/discover-whales",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/poll-trades",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/confirm-executions",
+      "schedule": "0 0 * * *"
     }
   ]
 }

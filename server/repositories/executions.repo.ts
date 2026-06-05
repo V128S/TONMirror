@@ -54,4 +54,24 @@ export const executionsRepo = {
       include: { decision: { include: { tradeEvent: true } } },
     });
   },
+
+  /**
+   * Executions awaiting on-chain confirmation: status `submitted`, settled at
+   * least `minAgeMs` ago (give the wallet time to broadcast) and no older than
+   * `maxAgeMs` (stop chasing stale rows). Used by the confirmation cron sweep.
+   */
+  async listAwaitingConfirmation(opts?: {
+    minAgeMs?: number;
+    maxAgeMs?: number;
+    limit?:    number;
+  }) {
+    const now   = Date.now();
+    const upper = new Date(now - (opts?.minAgeMs ?? 5_000));        // updated ≥ 5s ago
+    const lower = new Date(now - (opts?.maxAgeMs ?? 10 * 60_000));  // updated ≤ 10min ago
+    return prisma.copyExecution.findMany({
+      where:   { status: "submitted", updatedAt: { lte: upper, gte: lower } },
+      orderBy: { updatedAt: "asc" },
+      take:    opts?.limit ?? 50,
+    });
+  },
 };

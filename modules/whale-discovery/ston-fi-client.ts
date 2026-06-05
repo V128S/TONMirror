@@ -61,8 +61,11 @@ export async function getPoolSwappers(
 
   for (const poolAddr of poolAddresses) {
     try {
+      // TonAPI caps the events `limit` at 100 — sending more returns 400.
+      // `limit` here is the candidate cap, so clamp the page size separately.
+      const pageSize = Math.min(limit, 100);
       const url = `https://tonapi.io/v2/accounts/${poolAddr}/events` +
-                  `?limit=${limit}&subject_only=false`;
+                  `?limit=${pageSize}&subject_only=false`;
       const res = await fetch(url, { headers });
       if (!res.ok) {
         console.warn(`[ston-fi-client] TonAPI events failed for ${poolAddr}: ${res.status}`);

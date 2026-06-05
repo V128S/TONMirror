@@ -9,12 +9,20 @@ const nextConfig: NextConfig = {
   // Type-check still runs via `tsc --noEmit` in CI.
   eslint: { ignoreDuringBuilds: true },
 
-  // Telegram Mini Apps run inside an iframe
+  // Telegram Mini Apps run inside an iframe on web.telegram.org. `X-Frame-Options`
+  // has no valid "allow all" value, so we use CSP `frame-ancestors` to permit only
+  // Telegram (and self). Native Telegram clients use a webview, not an iframe, so
+  // they are unaffected by this header.
   async headers() {
     return [
       {
-        source:  "/(.*)",
-        headers: [{ key: "X-Frame-Options", value: "ALLOWALL" }],
+        source: "/(.*)",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org https://*.t.me",
+          },
+        ],
       },
     ];
   },
