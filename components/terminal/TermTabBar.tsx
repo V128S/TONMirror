@@ -4,10 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  { href: "/home",      label: "HOME", glyph: "⌂", tourId: "tab-mirror"    },
-  { href: "/market",    label: "MKT",  glyph: "◈", tourId: "tab-market"    },
-  { href: "/portfolio", label: "PORT", glyph: "◧", tourId: "tab-portfolio" },
-  { href: "/settings",  label: "CONF", glyph: "⚙", tourId: "tab-settings"  },
+  { href: "/home",     label: "MIRR", glyph: "⌂", tourId: "tab-mirror"   },
+  { href: "/market",   label: "DISC", glyph: "◈", tourId: "tab-market"   },
+  { href: "/activity", label: "ACT",  glyph: "▤", tourId: "tab-activity" },
 ];
 
 export function TermTabBar() {

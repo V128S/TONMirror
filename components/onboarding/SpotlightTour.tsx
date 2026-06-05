@@ -14,10 +14,10 @@ interface SpotlightTourProps {
 }
 
 const STEPS: TourStep[] = [
-  { targetSelector: '[data-tour="tab-mirror"]',    title: "Live Feed",      body: "Incoming signals from all followed leaders in real time.", placement: "top" },
-  { targetSelector: '[data-tour="tab-market"]',    title: "Market",         body: "Leaders and trade feed in one place.", placement: "top" },
-  { targetSelector: '[data-tour="tab-portfolio"]', title: "Portfolio",      body: "Wallet balance, active strategies and PnL.", placement: "top" },
-  { targetSelector: '[data-tour="tab-settings"]',  title: "Settings",       body: "Theme, strategy config and demo controls.", placement: "top" },
+  { targetSelector: '[data-tour="tab-mirror"]',    title: "Mirror",         body: "Incoming signals from all followed leaders in real time.", placement: "top" },
+  { targetSelector: '[data-tour="tab-market"]',    title: "Discover",       body: "Browse top leaders and find wallets worth following.", placement: "top" },
+  { targetSelector: '[data-tour="tab-activity"]',  title: "Activity",       body: "Full trade history, copy decisions and execution status.", placement: "top" },
+  { targetSelector: '[data-tour="tab-settings"]',  title: "Settings",       body: "Theme, strategy config and demo controls.", placement: "bottom" },
   { targetSelector: '[data-tour="connect-wallet"]',title: "Connect Wallet", body: "Connect your TON wallet to start copy-trading.", placement: "bottom" },
 ];
 

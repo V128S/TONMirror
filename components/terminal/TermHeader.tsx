@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { GlitchText } from "@/components/fx/GlitchText";
 import { PriceTicker, type TickerItem } from "@/components/fx/PriceTicker";
 import { usePrices } from "@/hooks/usePrices";
@@ -38,9 +39,18 @@ export function TermHeader({
             <GlitchText>{title}</GlitchText>
           </div>
         </div>
-        <span className="tm-mono text-[9px] text-phos-mid">
-          <span className="tm-blink text-phos-soft">●</span> LIVE
-        </span>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/settings"
+            aria-label="Settings"
+            data-tour="tab-settings"
+          >
+            <span className="tm-mono text-[12px] text-phos-mid">⚙</span>
+          </Link>
+          <span className="tm-mono text-[9px] text-phos-mid">
+            <span className="tm-blink text-phos-soft">●</span> LIVE
+          </span>
+        </div>
       </div>
     </div>
   );
