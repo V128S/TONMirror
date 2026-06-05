@@ -2,17 +2,13 @@
 
 import Link from "next/link";
 
-import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
-import { DecisionBadge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { TermHeader }   from "@/components/terminal/TermHeader";
 import { MirrorBar }    from "@/components/terminal/MirrorBar";
 import { CornerBox }    from "@/components/terminal/CornerBox";
 import { ScrambleText } from "@/components/fx/ScrambleText";
-import { LiveFeed, type FeedEvent } from "@/components/fx/LiveFeed";
 import { TerminalLog }  from "@/components/fx/TerminalLog";
-import { BlinkCaret }   from "@/components/fx/BlinkCaret";
 
 import { formatUsd, formatRelativeTime, formatAmount } from "@/lib/format";
 import { type HomeViewProps } from "./GlassHome";
@@ -35,13 +31,13 @@ export function TerminalHome({
   copiedToday,
   totalVolume,
 }: HomeViewProps) {
-  const feed: FeedEvent[] =
-    activity?.slice(0, 8).map((e) => ({
-      t: new Date(e.timestamp).toLocaleTimeString("en-GB", { hour12: false }),
-      who: e.leader.nickname,
-      action: `${e.soldAmountDecimal ? formatAmount(e.soldAmountDecimal) : ""} ${e.soldToken} → ${e.boughtToken}`,
-      pnl: Math.round(e.usdEstimate ?? 0),
-    })) ?? [];
+  const pending = (activity ?? []).filter(
+    (e) =>
+      e.execution != null &&
+      (e.execution.status === "pending" || e.execution.status === "quoted") &&
+      e.decision != null &&
+      e.decision.outcome !== "rejected",
+  );
 
   return (
     <div>
@@ -94,6 +90,7 @@ export function TerminalHome({
             </div>
           </CornerBox>
         </div>
+
         <div className="grid grid-cols-3 gap-1.5">
           {[
             { k: "FOLLOW", v: stratLoading ? "…" : String(activeCount).padStart(2, "0"), s: "leaders" },
@@ -107,52 +104,47 @@ export function TerminalHome({
             </div>
           ))}
         </div>
+
+        {/* NEEDS · CONFIRM — pending copy confirmations */}
+        {pending.length > 0 && (
+          <div>
+            <MirrorBar label="NEEDS · CONFIRM" />
+            <div className="mt-1.5 space-y-1.5">
+              {pending.slice(0, 3).map((e) => (
+                <Link
+                  key={e.id}
+                  href="/activity"
+                  className="flex items-center justify-between gap-2 border border-phos bg-phos/[0.06] px-2.5 py-2"
+                >
+                  <div className="min-w-0">
+                    <div className="text-[9px] text-phos-mid truncate">{e.leader.nickname} · {formatRelativeTime(e.timestamp)}</div>
+                    <div className="text-[11px] text-phos-hi tm-mono mt-0.5">
+                      {formatAmount(e.soldAmountDecimal)} {e.soldToken} <span className="text-phos-mid">→</span> {e.boughtToken}
+                    </div>
+                  </div>
+                  <span className="tm-mono text-[10px] tracking-[0.15em] text-phos-hi shrink-0" style={{ textShadow: "0 0 6px #00ff66" }}>
+                    CONFIRM ▸
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div>
           <MirrorBar label="SYSTEM · CONSOLE" />
           <div className="mt-1.5 border border-phos-border-dim bg-[#020806] px-2.5 py-2 max-h-[100px] overflow-hidden">
             <TerminalLog lines={BOOT_LOG} prompt="root@mirror~" speed={14} />
           </div>
         </div>
-        <div>
-          <MirrorBar label="LEADERS · TAPE" />
-          <div className="mt-1.5 border border-phos-border-dim bg-bg-panel px-2.5 py-1.5">
-            {actLoading || feed.length === 0 ? (
-              <div className="py-6 text-center text-[10px] text-phos-mid"><BlinkCaret /> awaiting signal…</div>
-            ) : (
-              <LiveFeed events={feed} height={132} />
-            )}
-          </div>
-        </div>
+
         <Link
-          href="/leaders"
+          href="/market"
           className="block text-center px-0 py-3 border border-phos text-phos-hi tm-mono text-[12px] tracking-[0.25em] font-bold hover:bg-phos/10"
           style={{ textShadow: "0 0 6px #00ff66" }}
         >
           ▸ SCAN · NEW · LEADERS ◂
         </Link>
-        {activity && activity.length > 0 && (
-          <Card>
-            <CardHeader><CardTitle>Recent Events</CardTitle></CardHeader>
-            <CardBody className="space-y-2">
-              {activity.slice(0, 3).map((event) => (
-                <div key={event.id} className="flex items-center justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[9px] text-phos-mid truncate">{event.leader.nickname}</p>
-                    <p className="text-[11px] text-phos-hi tm-mono">
-                      {formatAmount(event.soldAmountDecimal)} {event.soldToken}{" "}
-                      <span className="text-phos-mid">→</span> {event.boughtToken}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    {event.decision && <DecisionBadge decision={event.decision.outcome} />}
-                    <span className="text-[9px] text-phos-mid">{formatRelativeTime(event.timestamp)}</span>
-                  </div>
-                </div>
-              ))}
-              <Link href="/activity" className="inline-flex text-phos-soft text-[10px] mt-1">View all activity →</Link>
-            </CardBody>
-          </Card>
-        )}
       </div>
     </div>
   );

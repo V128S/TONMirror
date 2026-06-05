@@ -35,6 +35,14 @@ export function GlassHome({
   copiedToday,
   totalVolume,
 }: HomeViewProps) {
+  const pending = (activity ?? []).filter(
+    (e) =>
+      e.execution != null &&
+      (e.execution.status === "pending" || e.execution.status === "quoted") &&
+      e.decision != null &&
+      e.decision.outcome !== "rejected",
+  );
+
   return (
     <div>
       <PageTitle
@@ -99,9 +107,44 @@ export function GlassHome({
           <StatCell label="Strategies" value={stratLoading ? "…" : String(activeCount)} sub="active" />
         </div>
 
-        {/* Active leaders */}
+        {/* Needs your attention — pending copy confirmations */}
+        {pending.length > 0 && (
+          <div>
+            <SectionLabel right={`${pending.length}`}>Needs your attention</SectionLabel>
+            <Glass hi radius={22} padding={4}>
+              {pending.slice(0, 3).map((e, i, arr) => (
+                <Link
+                  href="/activity"
+                  key={e.id}
+                  className="grid items-center gap-3 px-3 py-3"
+                  style={{
+                    gridTemplateColumns: "1fr auto",
+                    borderBottom: i < arr.length - 1 ? "0.5px solid rgb(var(--hair) / 0.08)" : "none",
+                  }}
+                >
+                  <div className="min-w-0">
+                    <div className="text-fg truncate" style={{ fontSize: 14, fontWeight: 600 }}>
+                      {formatAmount(e.soldAmountDecimal)} {e.soldToken} → {e.boughtToken}
+                    </div>
+                    <div className="text-subtle" style={{ fontSize: 11, marginTop: 1 }}>
+                      {prettyName(e.leader.nickname)} · {formatRelativeTime(e.timestamp)}
+                    </div>
+                  </div>
+                  <span
+                    className="rounded-full px-3 py-1.5 whitespace-nowrap"
+                    style={{ fontSize: 12, fontWeight: 600, background: "rgb(var(--text1))", color: "rgb(var(--bg))" }}
+                  >
+                    Confirm →
+                  </span>
+                </Link>
+              ))}
+            </Glass>
+          </div>
+        )}
+
+        {/* Mirroring now */}
         <div>
-          <SectionLabel right={`${activeCount} active`}>Following</SectionLabel>
+          <SectionLabel right={`${activeCount} active`}>Mirroring now</SectionLabel>
           <Glass radius={22} padding={4}>
             {stratLoading ? (
               <div className="p-2 space-y-2">
@@ -112,7 +155,7 @@ export function GlassHome({
                 Not mirroring any leaders yet.
               </div>
             ) : (
-              (strategies ?? []).filter((s) => !s.isPaused).slice(0, 4).map((s, i, arr) => (
+              (strategies ?? []).filter((s) => !s.isPaused).slice(0, 3).map((s, i, arr) => (
                 <Link
                   href={`/leaders/${s.leaderWalletId}`}
                   key={s.id}
@@ -144,57 +187,8 @@ export function GlassHome({
           </Glass>
         </div>
 
-        {/* Live tape */}
-        <div>
-          <SectionLabel
-            right={
-              <span className="text-muted" style={{ animation: "gl-pulse 3s ease-in-out infinite" }}>
-                ● Live
-              </span>
-            }
-          >
-            Recent activity
-          </SectionLabel>
-          <Glass radius={22} padding={4}>
-            {actLoading ? (
-              <div className="p-2 space-y-2">
-                {[1, 2, 3].map((i) => <GlassSkeleton key={i} className="h-10" />)}
-              </div>
-            ) : activity && activity.length > 0 ? (
-              activity.slice(0, 4).map((e, i, arr) => {
-                const pnl = Math.round(e.usdEstimate ?? 0);
-                const up  = pnl >= 0;
-                return (
-                  <div
-                    key={e.id}
-                    className="grid items-center gap-2.5 px-3 py-2.5"
-                    style={{ gridTemplateColumns: "52px 1fr auto", borderBottom: i < arr.length - 1 ? "0.5px solid rgb(var(--hair) / 0.08)" : "none" }}
-                  >
-                    <span className="font-mono text-subtle" style={{ fontSize: 11 }}>
-                      {new Date(e.timestamp).toLocaleTimeString("en-GB", { hour12: false }).slice(0, 5)}
-                    </span>
-                    <div className="min-w-0">
-                      <div className="text-fg truncate" style={{ fontSize: 13, fontWeight: 500 }}>
-                        {formatAmount(e.soldAmountDecimal)} {e.soldToken} → {e.boughtToken}
-                      </div>
-                      <div className="text-subtle" style={{ fontSize: 11, marginTop: 1 }}>
-                        {prettyName(e.leader.nickname)} · {formatRelativeTime(e.timestamp)}
-                      </div>
-                    </div>
-                    <span className="gl-tnum" style={{ fontSize: 13, fontWeight: 600, color: up ? "rgb(var(--text1))" : "rgb(var(--text3))" }}>
-                      {up ? "↑" : "↓"} ${Math.abs(pnl)}
-                    </span>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-center py-6 text-subtle" style={{ fontSize: 12 }}>Awaiting signal…</div>
-            )}
-          </Glass>
-        </div>
-
         <Link
-          href="/leaders"
+          href="/market"
           className="block text-center rounded-[22px] px-0 py-3.5"
           style={{
             background: "rgb(var(--text1))",
