@@ -16,8 +16,10 @@
  */
 import { prisma } from "@/lib/prisma";
 import { getTradeSource } from "@/modules/trade-ingestion";
+import type { NormalizedTradeEvent } from "@/modules/trade-ingestion/types";
 import { leadersRepo }    from "@/server/repositories/leaders.repo";
 import { decisionService } from "@/server/services/decision.service";
+import { getTonUsd }       from "@/server/services/pricing.service";
 
 export type PollResult = {
   leaders:    number;
@@ -37,6 +39,13 @@ export const ingestionService = {
     const source  = await getTradeSource();
     const leaders = await leadersRepo.listFollowedActive();
 
+    // On the live path, derive USD estimates from the consolidated Omniston
+    // pricing (pricing.service) rather than the source's own approximation.
+    // In demo, leave the mock's seeded usdEstimate untouched so demo numbers
+    // stay deterministic.
+    const liveEnabled = process.env.NEXT_PUBLIC_ENABLE_LIVE_SOURCE === "true";
+    const tonUsd = liveEnabled ? await getTonUsd() : 0;
+
     let eventsSeen = 0;
     let decisions  = 0;
 
@@ -45,11 +54,13 @@ export const ingestionService = {
         const trades = await source.getRecentTrades(leader.address);
 
         for (const event of trades) {
+          const priced = liveEnabled ? repriceWithTonUsd(event, tonUsd) : event;
+
           // The source fills leaderWalletId from its own registry (often just
           // the address when not subscribed). Authoritatively bind it to the
           // DB leader id so decisions attach to the right wallet.
           const created = await decisionService.processTradeEvent({
-            ...event,
+            ...priced,
             leaderWalletId: leader.id,
             leaderAddress:  leader.address,
           });
@@ -72,6 +83,23 @@ export const ingestionService = {
 };
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Recompute the USD estimate for TON-involving trades from a single live
+ * TON→USD rate. Non-TON pairs keep whatever the source provided.
+ */
+function repriceWithTonUsd(
+  event: NormalizedTradeEvent,
+  tonUsd: number,
+): NormalizedTradeEvent {
+  if (event.soldToken === "TON") {
+    return { ...event, usdEstimate: event.soldAmountDecimal * tonUsd };
+  }
+  if (event.boughtToken === "TON") {
+    return { ...event, usdEstimate: event.boughtAmountDecimal * tonUsd };
+  }
+  return event;
+}
 
 async function writeErrorLog(action: string, entityId: string, err: unknown) {
   try {
