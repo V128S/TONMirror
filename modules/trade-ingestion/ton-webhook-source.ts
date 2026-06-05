@@ -23,6 +23,20 @@ import type { LeaderTradeSource, NormalizedTradeEvent, TradeEventHandler } from 
 import { parseTonWebhookPayload } from "./ton-payload-parser";
 import { fetchWithRetry } from "@/lib/fetch-retry";
 
+/**
+ * Map a raw TonAPI jetton symbol to the canonical symbol the pipeline uses.
+ *
+ * TonAPI labels Tether as "USD₮" (with the ₮ glyph), but our token-map and
+ * SUPPORTED_PAIRS use "USDT" — without this, a real TON→USD₮ whale swap would be
+ * filtered out and fail to quote. Unknown symbols pass through uppercased.
+ */
+function normalizeSymbol(raw: string | undefined): string {
+  const s = (raw ?? "").trim();
+  if (!s) return "UNKNOWN";
+  if (s === "USD₮" || s.toUpperCase() === "USDT") return "USDT";
+  return s;
+}
+
 export class TonWebhookTradeSource implements LeaderTradeSource {
   /** Addresses currently being watched: address → leaderWalletId */
   private readonly watchedWallets = new Map<string, string>();
@@ -111,8 +125,8 @@ export class TonWebhookTradeSource implements LeaderTradeSource {
           const isTonIn    = Boolean(s.ton_in && BigInt(s.ton_in) > BigInt(0));
           const isTonOut   = Boolean(s.ton_out && BigInt(s.ton_out) > BigInt(0));
 
-          const soldToken   = isTonIn  ? "TON" : (s.jetton_master_in?.symbol  ?? "UNKNOWN");
-          const boughtToken = isTonOut ? "TON" : (s.jetton_master_out?.symbol ?? "UNKNOWN");
+          const soldToken   = isTonIn  ? "TON" : normalizeSymbol(s.jetton_master_in?.symbol);
+          const boughtToken = isTonOut ? "TON" : normalizeSymbol(s.jetton_master_out?.symbol);
 
           // Resolve decimal amounts
           const NANO = BigInt(1_000_000_000);

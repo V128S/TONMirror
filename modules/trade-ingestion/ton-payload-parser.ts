@@ -49,12 +49,15 @@ export type TonWebhookPayload = z.infer<typeof TonWebhookPayloadSchema>;
 
 // ─── Token resolution helpers ─────────────────────────────────────────────────
 
-/** Jetton master address → symbol mapping (mirrors TOKEN_MAP in omniston module) */
-const JETTON_SYMBOL: Record<string, string> = {
-  "EQBynBO23ywHy_CgarY9NK9FTz0yDsG82PtcbSTQgGoXwiuA": "USDT",
-  "EQA2kCVNwVsil2EM2mB0SkXytxCqQjS4mttjDpnXmwG9T6bO": "STON",
-  "EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT": "NOT",
-  "EQCvxJy4eG8hyHl7jaWwFkPaK8LejS2MCft9tnQ8ohtXu_DOGS": "DOGS",
+/**
+ * Jetton master address → { symbol, decimals } for the live token universe.
+ * Addresses verified against TonAPI (whitelist) and kept in sync with TOKEN_MAP
+ * in the omniston module. Only vetted tokens resolve to a known symbol; anything
+ * else falls back to a truncated address and is later filtered by SUPPORTED_PAIRS.
+ */
+const JETTON_META: Record<string, { symbol: string; decimals: number }> = {
+  "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs": { symbol: "USDT",  decimals: 6 },
+  "EQC98_qAmNEptUtPc7W6xdHh_ZHrBUFpw5Ft_IzNU20QAJav": { symbol: "tsTON", decimals: 9 },
 };
 
 const TON_DECIMALS     = 9;
@@ -62,7 +65,12 @@ const DEFAULT_DECIMALS = 9;
 
 function resolveToken(jettonMaster: string | null): string {
   if (!jettonMaster) return "TON";
-  return JETTON_SYMBOL[jettonMaster] ?? jettonMaster.slice(0, 8) + "…";
+  return JETTON_META[jettonMaster]?.symbol ?? jettonMaster.slice(0, 8) + "…";
+}
+
+function resolveDecimals(jettonMaster: string | null): number {
+  if (!jettonMaster) return TON_DECIMALS;
+  return JETTON_META[jettonMaster]?.decimals ?? DEFAULT_DECIMALS;
 }
 
 function toDecimal(units: string, decimals = DEFAULT_DECIMALS): number {
@@ -101,8 +109,8 @@ export function extractSwap(payload: TonWebhookPayload): ParsedSwap | null {
     // Skip self-swaps (shouldn't happen, but guard anyway)
     if (soldToken === boughtToken) continue;
 
-    const soldDecimals   = soldToken   === "TON" ? TON_DECIMALS : DEFAULT_DECIMALS;
-    const boughtDecimals = boughtToken === "TON" ? TON_DECIMALS : DEFAULT_DECIMALS;
+    const soldDecimals   = resolveDecimals(swap.jetton_master_in);
+    const boughtDecimals = resolveDecimals(swap.jetton_master_out);
 
     const soldAmountDecimal   = toDecimal(swap.amount_in,  soldDecimals);
     const boughtAmountDecimal = toDecimal(swap.amount_out, boughtDecimals);

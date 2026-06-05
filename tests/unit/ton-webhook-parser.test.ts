@@ -26,12 +26,12 @@ const VALID_SWAP_TON_TO_USDT = {
       jetton_swap: {
         dex:               "stonfi",
         amount_in:         "10000000000",   // 10 TON (9 decimals)
-        amount_out:        "61500000",      // 61.5 USDT (6 decimals → treated as 9 here)
+        amount_out:        "61500000",      // 61.5 USDT (6 decimals)
         ton_in:            "10000000000",
         ton_out:           null,
         user_wallet:       "UQBFkBuVMiIpBGLnIsYM9oFBbkJMFLnmHsVLFEGrElAlPHAL",
         jetton_master_in:  null,           // null = TON sold
-        jetton_master_out: "EQBynBO23ywHy_CgarY9NK9FTz0yDsG82PtcbSTQgGoXwiuA", // USDT
+        jetton_master_out: "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs", // USDT (verified)
         router:            "EQB3ncyBUTjZUA5EnFKR5_EnOMI9V1tTEAAPaiU71gc4TiUt",
       },
     },
@@ -120,6 +120,7 @@ describe("extractSwap", () => {
     expect(swap!.soldToken).toBe("TON");
     expect(swap!.boughtToken).toBe("USDT");
     expect(swap!.soldAmountDecimal).toBeCloseTo(10, 2);
+    expect(swap!.boughtAmountDecimal).toBeCloseTo(61.5, 2); // 61500000 @ 6 decimals
     expect(swap!.dex).toBe("stonfi");
   });
 
