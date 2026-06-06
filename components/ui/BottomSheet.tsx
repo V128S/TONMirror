@@ -90,7 +90,9 @@ export function BottomSheet({
         borderRight:  "1px solid rgba(0,255,102,0.20)",
         borderRadius: 0,
         maxHeight:    maxH,
-        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        // Clear the floating tab bar (fixed bottom-5, ~72px tall) which otherwise
+        // bleeds through this translucent sheet and hides the action buttons.
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)",
       }
     : {
         background:           "var(--glass-hi)",
@@ -101,7 +103,9 @@ export function BottomSheet({
         borderRight:  "0.5px solid var(--glass-edge)",
         borderRadius: "24px 24px 0 0",
         maxHeight:    maxH,
-        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        // Clear the floating tab bar (fixed bottom-5, ~72px tall) which otherwise
+        // bleeds through this translucent sheet and hides the action buttons.
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)",
       };
 
   return (
