@@ -42,6 +42,35 @@ function MetaRow({ k, v }: { k: string; v: React.ReactNode }) {
   );
 }
 
+// ─── Editable copy size (USD) — re-quotes on Apply / Enter ─────────────────
+function TermAmountEditor({ amount, disabled, onApply }: { amount: number; disabled?: boolean; onApply: (n: number) => void }) {
+  const [text, setText] = useState(String(amount));
+  useEffect(() => { setText(String(amount)); }, [amount]);
+  const parsed  = Number(text);
+  const changed = Number.isFinite(parsed) && parsed > 0 && parsed !== amount;
+  const apply   = () => { if (changed) onApply(parsed); };
+  return (
+    <div className="mb-3">
+      <div className="tm-mono text-[9px] text-phos-mid tracking-[0.12em] uppercase mb-1">▸ amount · usd</div>
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 flex-1 border border-phos-border-dim bg-bg-panel px-2 py-2">
+          <span className="tm-mono text-phos-mid text-[13px]">$</span>
+          <input
+            type="number" inputMode="decimal" min="0" step="0.5" value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") apply(); }}
+            className="flex-1 bg-transparent outline-none tm-mono tm-glow-soft text-phos-hi text-[14px] w-full"
+          />
+        </div>
+        <button onClick={apply} disabled={disabled || !changed}
+          className="border border-phos-border bg-bg-panel px-3 py-2 tm-mono text-[11px] text-phos-hi tracking-[0.08em] disabled:opacity-40 whitespace-nowrap">
+          [ ↻ UPD ]
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function QuoteDetails({
   quote, onConfirm, onRefresh, isPreparing, isExpired,
 }: {
@@ -176,7 +205,7 @@ function SubmittedView({ txHash, onDismiss }: { txHash: string | null; onDismiss
 }
 
 export function TerminalQuoteCard({ onDismiss, ...params }: TerminalQuoteCardProps) {
-  const { flow, wallet, actions, step, isSending, sendError, handleConfirm, handleRefresh, handleSend, isExpired } =
+  const { flow, wallet, actions, step, isSending, sendError, amount, requote, handleConfirm, handleRefresh, handleSend, isExpired } =
     useQuoteFlow(params);
 
   return (
@@ -197,6 +226,10 @@ export function TerminalQuoteCard({ onDismiss, ...params }: TerminalQuoteCardPro
         <div className="mb-3 border border-phos-border-dim bg-bg-panel px-3 py-2 tm-mono text-[9px] text-phos-mid tracking-[0.08em] leading-relaxed">
           [ NON-CUSTODIAL ] you review &amp; sign every copy from your own wallet · tonmirror never holds funds
         </div>
+
+        {(step === "idle" || step === "quoted") && (
+          <TermAmountEditor amount={amount} disabled={flow.isQuoting} onApply={requote} />
+        )}
 
         {flow.isQuoting && (
           <div className="space-y-3">

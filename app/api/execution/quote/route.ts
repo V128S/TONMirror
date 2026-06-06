@@ -37,9 +37,7 @@ export async function POST(req: Request) {
     const quote = await executionService.fetchQuote(parsed.data);
     return NextResponse.json({ data: quote });
   } catch (err) {
-    // Front-load the message so it's visible in truncated log views.
-    const msg = err instanceof Error ? `${err.message}` : String(err);
-    console.error(`[quote-fail] ${msg}`);
-    return NextResponse.json({ error: "Failed to fetch quote", detail: msg }, { status: 500 });
+    console.error("[POST /api/execution/quote]", err);
+    return NextResponse.json({ error: "Failed to fetch quote" }, { status: 500 });
   }
 }

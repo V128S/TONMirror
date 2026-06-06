@@ -42,21 +42,10 @@ export function verifyTelegramInitData(
 
     const secretKey = crypto.createHmac("sha256", "WebAppData").update(botToken).digest();
     const computed  = crypto.createHmac("sha256", secretKey).update(dataCheckString).digest("hex");
-    if (computed !== hash) {
-      // Diagnostic only — prefixes, never the full hashes/token.
-      console.warn(
-        `[tg-auth] hash mismatch — likely bot-token mismatch. ` +
-        `computed=${computed.slice(0, 8)}… hash=${hash.slice(0, 8)}… ` +
-        `botToken#${botToken.split(":")[0] ?? "?"}`,
-      );
-      return null;
-    }
+    if (computed !== hash) return null;
 
     const authDate = Number(params.get("auth_date") ?? 0);
-    if (maxAgeSec > 0 && authDate > 0 && Date.now() / 1000 - authDate > maxAgeSec) {
-      console.warn(`[tg-auth] stale auth_date — age ${Math.round(Date.now() / 1000 - authDate)}s > ${maxAgeSec}s`);
-      return null;
-    }
+    if (maxAgeSec > 0 && authDate > 0 && Date.now() / 1000 - authDate > maxAgeSec) return null;
 
     const userRaw = params.get("user");
     if (!userRaw) return null;
@@ -75,17 +64,10 @@ export function verifyTelegramInitData(
  */
 export async function resolveAuthUserId(req: Request): Promise<string | null> {
   const initData = req.headers.get("x-telegram-init-data");
-  if (!initData) {
-    console.warn("[tg-auth] no x-telegram-init-data header on request");
-    return null;
-  }
+  if (!initData) return null;
 
-  const hasToken = Boolean(process.env.TELEGRAM_BOT_TOKEN);
   const tgUser = verifyTelegramInitData(initData);
-  if (!tgUser) {
-    console.warn(`[tg-auth] initData present (len=${initData.length}) but verification failed (botTokenSet=${hasToken})`);
-    return null;
-  }
+  if (!tgUser) return null;
 
   const telegramId  = String(tgUser.id);
   const displayName =
