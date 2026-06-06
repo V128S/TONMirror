@@ -167,7 +167,10 @@ export class OmnistonExecutionProvider implements ExecutionProvider {
     try {
       const tx = await client.tonBuildSwap({
         quoteId:             request.quoteId,
+        // Source = the user's wallet (pays in); destination = same wallet
+        // (receives the bought token). Omniston rejects an empty traderDstAddress.
         transferSrcAddress:  { chain: { $case: "ton", value: request.walletAddress } },
+        traderDstAddress:    { chain: { $case: "ton", value: request.walletAddress } },
         useRecommendedSlippage: false,
       });
 
