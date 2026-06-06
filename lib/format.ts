@@ -27,6 +27,19 @@ export function formatUsd(value: number): string {
   }).format(value);
 }
 
+/** Format a signed USD PnL value, e.g. "+$1.20K", "-$340.00", "$0.00". */
+export function formatPnlUsd(value: number): string {
+  if (value === 0) return formatUsd(0);
+  const sign = value > 0 ? "+" : "-";
+  return `${sign}${formatUsd(Math.abs(value))}`;
+}
+
+/** Format a signed ratio (e.g. 0.12 → "+12%", -0.05 → "-5%"). */
+export function formatSignedPercent(value: number, decimals = 0): string {
+  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
+  return `${sign}${(Math.abs(value) * 100).toFixed(decimals)}%`;
+}
+
 /** Format basis points as a percentage string */
 export function formatBps(bps: number): string {
   return `${(bps / 100).toFixed(2)}%`;

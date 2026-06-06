@@ -25,7 +25,7 @@ import { CornerBox }   from "@/components/terminal/CornerBox";
 import { Sparkline }   from "@/components/fx/Sparkline";
 import { RiskMeter }   from "@/components/fx/RiskMeter";
 import { BlinkCaret }  from "@/components/fx/BlinkCaret";
-import { formatUsd, formatPercent, formatAmount, formatRelativeTime, shortenAddress } from "@/lib/format";
+import { formatUsd, formatPercent, formatAmount, formatRelativeTime, shortenAddress, formatPnlUsd, formatSignedPercent } from "@/lib/format";
 import { useLeader, useFollowLeader } from "@/hooks/useLeaders";
 import { useStrategies, usePauseStrategy, useDeleteStrategy } from "@/hooks/useStrategies";
 import { useLeaderTrades, type WhalePeriod, type WhaleTradeDirection } from "@/hooks/useLeaderTrades";
@@ -419,12 +419,29 @@ export default function LeaderDetailPage() {
                 </SegPick>
               ))}
             </div>
+            {/* Net PnL banner */}
+            <div className="border border-phos-border px-3 py-2 mt-1.5" style={{ background: "rgba(0,255,102,0.03)" }}>
+              <div className="flex justify-between items-center">
+                <span className="text-[9px] text-phos-mid tracking-[0.15em]">NET·PNL · {period.toUpperCase()}</span>
+                {!whaleLoading && stats?.roi != null && (
+                  <span className="tm-mono text-[10px]" style={{ color: stats.roi >= 0 ? "#00ff66" : "#ff5555" }}>
+                    {formatSignedPercent(stats.roi)} ROI
+                  </span>
+                )}
+              </div>
+              <div className="tm-disp tm-glow text-[22px] mt-0.5" style={{
+                color: whaleLoading ? "#4a8a5e" : (stats?.netPnlUsd ?? 0) < 0 ? "#ff5555" : "#00ff66",
+              }}>
+                {whaleLoading ? "…" : formatPnlUsd(stats?.netPnlUsd ?? 0)}
+              </div>
+            </div>
+
             {/* Period stats */}
             <div className="grid grid-cols-3 gap-1.5 mt-1.5">
               {[
-                { l: "TRADES",  v: whaleLoading ? "…" : String(stats?.tradeCount ?? 0) },
-                { l: "VOL·USD", v: whaleLoading ? "…" : formatUsd(stats?.volumeUsd ?? 0) },
-                { l: "AVG",     v: whaleLoading ? "…" : stats?.avgSizeUsd != null ? formatUsd(stats.avgSizeUsd) : "—" },
+                { l: "TRADES", v: whaleLoading ? "…" : String(stats?.tradeCount ?? 0) },
+                { l: "BOUGHT", v: whaleLoading ? "…" : formatUsd(stats?.boughtUsd ?? 0) },
+                { l: "SOLD",   v: whaleLoading ? "…" : formatUsd(stats?.soldUsd ?? 0) },
               ].map((c) => (
                 <div key={c.l} className="border border-phos-border-dim p-2 text-center" style={{ background: "rgba(0,255,102,0.03)" }}>
                   <div className="text-[9px] text-phos-mid tracking-[0.15em]">[{c.l}]</div>
@@ -590,12 +607,44 @@ export default function LeaderDetailPage() {
             ))}
           </div>
 
+          {/* Net PnL banner */}
+          <Glass hi radius={18} padding={14} className="mb-2.5">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-subtle" style={{ fontSize: 10, letterSpacing: "0.04em" }}>
+                  NET PNL · {period.toUpperCase()}
+                </div>
+                <div className="gl-tnum mt-1" style={{
+                  fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1,
+                  color: whaleLoading ? "rgb(var(--text2))"
+                    : (stats?.netPnlUsd ?? 0) > 0 ? "#22c55e"
+                    : (stats?.netPnlUsd ?? 0) < 0 ? "#ef4444"
+                    : "rgb(var(--text1))",
+                }}>
+                  {whaleLoading ? "…" : formatPnlUsd(stats?.netPnlUsd ?? 0)}
+                </div>
+              </div>
+              {!whaleLoading && stats?.roi != null && (
+                <div className="rounded-full px-2.5 py-1" style={{
+                  fontSize: 13, fontWeight: 700,
+                  background: stats.roi >= 0 ? "rgba(34,197,94,0.14)" : "rgba(239,68,68,0.14)",
+                  color:      stats.roi >= 0 ? "#22c55e" : "#ef4444",
+                }}>
+                  {formatSignedPercent(stats.roi)} ROI
+                </div>
+              )}
+            </div>
+            <div className="text-subtle mt-2" style={{ fontSize: 10 }}>
+              realised TON cash-flow (sold − bought) over the period
+            </div>
+          </Glass>
+
           {/* Period stats */}
           <div className="grid grid-cols-3 gap-2 mb-2.5">
             {[
-              { label: "Trades",   value: whaleLoading ? "…" : String(stats?.tradeCount ?? 0) },
-              { label: "Volume",   value: whaleLoading ? "…" : formatUsd(stats?.volumeUsd ?? 0) },
-              { label: "Avg size", value: whaleLoading ? "…" : stats?.avgSizeUsd != null ? formatUsd(stats.avgSizeUsd) : "—" },
+              { label: "Trades", value: whaleLoading ? "…" : String(stats?.tradeCount ?? 0) },
+              { label: "Bought", value: whaleLoading ? "…" : formatUsd(stats?.boughtUsd ?? 0) },
+              { label: "Sold",   value: whaleLoading ? "…" : formatUsd(stats?.soldUsd ?? 0) },
             ].map((s) => (
               <Glass key={s.label} radius={14} padding={10} className="text-center">
                 <div className="text-subtle" style={{ fontSize: 10 }}>{s.label}</div>

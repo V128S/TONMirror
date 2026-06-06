@@ -48,6 +48,16 @@ export interface WhaleActivityStats {
   avgSizeUsd:   number | null;
   buys:         number;
   sells:        number;
+  /** USD spent acquiring tokens (TON-leg of buys) within the window. */
+  boughtUsd:    number;
+  /** USD realised selling tokens back to TON (TON-leg of sells) within window. */
+  soldUsd:      number;
+  /** Realised net flow: soldUsd − boughtUsd. Positive = net cash out (took
+   *  profit/distributed), negative = net accumulation. Best-effort PnL proxy
+   *  from one-directional swaps — excludes token↔token legs we can't price. */
+  netPnlUsd:    number;
+  /** netPnlUsd / boughtUsd as a ratio (e.g. 0.12 = +12%), null when no buys. */
+  roi:          number | null;
   lastActiveAt: string | null; // ISO of most recent trade in window
 }
 
@@ -102,15 +112,23 @@ export const whaleActivityService = {
 
     const volumeUsd = trades.reduce((s, t) => s + (t.usdEstimate ?? 0), 0);
     const pricedCount = trades.filter((t) => t.usdEstimate != null).length;
-    const buys  = trades.filter((t) => t.direction === "buy").length;
-    const sells = trades.filter((t) => t.direction === "sell").length;
+    const buyTrades  = trades.filter((t) => t.direction === "buy");
+    const sellTrades = trades.filter((t) => t.direction === "sell");
+
+    const boughtUsd = buyTrades.reduce((s, t) => s + (t.usdEstimate ?? 0), 0);
+    const soldUsd   = sellTrades.reduce((s, t) => s + (t.usdEstimate ?? 0), 0);
+    const netPnlUsd = soldUsd - boughtUsd;
 
     const stats: WhaleActivityStats = {
       tradeCount:   trades.length,
       volumeUsd,
       avgSizeUsd:   pricedCount > 0 ? volumeUsd / pricedCount : null,
-      buys,
-      sells,
+      buys:         buyTrades.length,
+      sells:        sellTrades.length,
+      boughtUsd,
+      soldUsd,
+      netPnlUsd,
+      roi:          boughtUsd > 0 ? netPnlUsd / boughtUsd : null,
       lastActiveAt: trades[0]?.timestamp ?? null,
     };
 

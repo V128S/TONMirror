@@ -26,6 +26,10 @@ export interface WhaleActivityStats {
   avgSizeUsd:   number | null;
   buys:         number;
   sells:        number;
+  boughtUsd:    number;
+  soldUsd:      number;
+  netPnlUsd:    number;
+  roi:          number | null;
   lastActiveAt: string | null;
 }
 

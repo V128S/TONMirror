@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 
+import { useTheme } from "@/components/theme/ThemeProvider";
+import { useMultiTap } from "@/hooks/useMultiTap";
 import { CopyConfirmSheet } from "@/components/activity/CopyConfirmSheet";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
@@ -35,6 +37,10 @@ export function TerminalHome({
   totalVolume,
 }: HomeViewProps) {
   const [confirmEvent, setConfirmEvent] = useState<ActivityEvent | null>(null);
+  const { toggleTerminal } = useTheme();
+
+  // Hidden gesture: 5 quick taps on the TON·MIRROR logo → back to Light/Dark.
+  const handleLogoTap = useMultiTap(toggleTerminal);
 
   // Only surface confirmations for fresh trades — anything older than an hour is
   // no longer actionable (the live quote would be stale) and just adds noise.
@@ -50,7 +56,7 @@ export function TerminalHome({
 
   return (
     <div>
-      <TermHeader title="TON·MIRROR" sub="copy-the-alpha · v0.9.4" />
+      <TermHeader title="TON·MIRROR" sub="copy-the-alpha · v0.9.4" onTitleClick={handleLogoTap} />
       <div className="px-4 pt-2 space-y-3.5">
         <div>
           <MirrorBar label="WALLET · MIRROR" />

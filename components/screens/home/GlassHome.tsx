@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import Link from "next/link";
 
 import { useTheme } from "@/components/theme/ThemeProvider";
+import { useMultiTap } from "@/hooks/useMultiTap";
 import { type WalletBalances } from "@/hooks/useWalletBalances";
 import { CopyConfirmSheet } from "@/components/activity/CopyConfirmSheet";
 import { Glass }        from "@/components/glass/Glass";
@@ -44,21 +45,10 @@ export function GlassHome({
   totalVolume,
 }: HomeViewProps) {
   const [confirmEvent, setConfirmEvent] = useState<ActivityEvent | null>(null);
-  const { setTheme } = useTheme();
+  const { toggleTerminal } = useTheme();
 
   // Hidden gesture: 5 quick taps on the "Mirror" title → terminal theme.
-  const tapRef = useRef<{ count: number; timer: ReturnType<typeof setTimeout> | null }>({ count: 0, timer: null });
-  const handleLogoTap = () => {
-    const s = tapRef.current;
-    if (s.timer) clearTimeout(s.timer);
-    s.count += 1;
-    if (s.count >= 5) {
-      s.count = 0;
-      setTheme("terminal");
-      return;
-    }
-    s.timer = setTimeout(() => { s.count = 0; }, 1200);
-  };
+  const handleLogoTap = useMultiTap(toggleTerminal);
 
   // Only surface confirmations for fresh trades — anything older than an hour is
   // no longer actionable (the live quote would be stale) and just adds noise.

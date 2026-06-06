@@ -21,9 +21,12 @@ const LOADING_TICKER: TickerItem[] = [
 export function TermHeader({
   title,
   sub,
+  onTitleClick,
 }: {
   title: string;
   sub: string;
+  /** Optional tap handler on the title (hidden gesture to switch theme). */
+  onTitleClick?: () => void;
 }) {
   const { data: prices } = usePrices();
   const ticker: TickerItem[] = prices ?? LOADING_TICKER;
@@ -38,7 +41,11 @@ export function TermHeader({
       <div className="px-4 pt-2.5 pb-1.5 flex items-baseline justify-between">
         <div>
           <div className="tm-mono tm-glow text-[9px] text-phos-mid tracking-[0.2em]">// {sub}</div>
-          <div className="text-[22px]">
+          <div
+            className="text-[22px]"
+            onClick={onTitleClick}
+            style={onTitleClick ? { cursor: "pointer", userSelect: "none" } : undefined}
+          >
             <GlitchText>{title}</GlitchText>
           </div>
         </div>
