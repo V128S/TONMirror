@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { tradesRepo } from "@/server/repositories/trades.repo";
-import { toFriendlyAddress, shortenFriendly, looksRawAddress } from "@/lib/ton-address";
+import { toFriendlyAddress, whaleAlias, isAddressLikeNickname } from "@/lib/ton-address";
 
 const querySchema = z.object({
   leaderId: z.string().optional(),
@@ -49,8 +49,8 @@ export async function GET(req: Request) {
         sourceProvider:      event.sourceProvider,
         leader: {
           id:       event.leaderWallet.id,
-          nickname: looksRawAddress(event.leaderWallet.nickname)
-            ? shortenFriendly(event.leaderWallet.address)
+          nickname: isAddressLikeNickname(event.leaderWallet.nickname)
+            ? whaleAlias(toFriendlyAddress(event.leaderWallet.address))
             : event.leaderWallet.nickname,
           address:  toFriendlyAddress(event.leaderWallet.address),
         },

@@ -21,7 +21,12 @@ export const leadersRepo = {
   async list(options?: { includeInactive?: boolean }) {
     return prisma.leaderWallet.findMany({
       where: options?.includeInactive ? undefined : { isActive: true },
-      orderBy: [{ activityScore: "desc" }, { nickname: "asc" }],
+      // Best whales first: discovery score, then activity, then volume.
+      orderBy: [
+        { discoveryScore: { sort: "desc", nulls: "last" } },
+        { activityScore:  "desc" },
+        { volumeUsd30d:   { sort: "desc", nulls: "last" } },
+      ],
     });
   },
 

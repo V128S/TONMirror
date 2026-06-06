@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { leadersRepo } from "@/server/repositories/leaders.repo";
-import { withFriendlyLeader, toFriendlyAddress, shortenFriendly } from "@/lib/ton-address";
+import { withFriendlyLeader, toFriendlyAddress, whaleAlias, isAddressLikeNickname } from "@/lib/ton-address";
 
 // ─── GET /api/leaders ─────────────────────────────────────────────────────────
 
@@ -54,8 +54,8 @@ export async function POST(req: Request) {
     // Store addresses in friendly form so the DB stays consistent regardless of
     // what format the caller supplied.
     const address  = toFriendlyAddress(parsed.data.address);
-    const nickname = parsed.data.nickname === parsed.data.address
-      ? shortenFriendly(address)
+    const nickname = isAddressLikeNickname(parsed.data.nickname)
+      ? whaleAlias(address)
       : parsed.data.nickname;
 
     const data = await leadersRepo.create({

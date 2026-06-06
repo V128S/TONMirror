@@ -90,7 +90,7 @@ export function GlassMarket({ leaders, lLoad, lError }: MarketViewProps) {
         ) : lError || !leaders ? (
           <div className="text-center pt-12 text-subtle">Couldn&apos;t load leaders.</div>
         ) : leaders.length === 0 ? (
-          <div className="text-center pt-12 text-subtle">No leaders yet. Run the seed script.</div>
+          <div className="text-center pt-12 text-subtle">No leaders to show yet — whale discovery runs daily.</div>
         ) : leaders.map((leader) => {
           const spark = Array.from({ length: 16 }).map(
             (_, i) => 40 + i * 2 + Math.sin(i * 0.7 + leader.riskScore) * 8 + leader.activityScore * 10,

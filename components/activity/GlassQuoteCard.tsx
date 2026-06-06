@@ -202,6 +202,10 @@ export function GlassQuoteCard({ onDismiss, ...params }: GlassQuoteCardProps) {
         </button>
       </div>
 
+      <div className="mb-3 rounded-[14px] px-3 py-2 text-subtle" style={{ fontSize: 11, background: "var(--chip)", border: "0.5px solid var(--glass-edge)" }}>
+        🔑 Non-custodial — you review and sign every copy from your own wallet. TonMirror never holds your funds.
+      </div>
+
       {flow.isQuoting && (
         <div className="space-y-3">
           <Glass radius={20} padding={16}>

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { strategiesRepo } from "@/server/repositories/strategies.repo";
 import { prisma } from "@/lib/prisma";
 import { resolveAuthUserId } from "@/server/auth/telegram-auth";
+import { withFriendlyLeader } from "@/lib/ton-address";
 
 // ─── GET /api/strategies ──────────────────────────────────────────────────────
 
@@ -18,7 +19,11 @@ export async function GET(req: Request) {
     }
 
     const strategies = await strategiesRepo.listByUser(userId);
-    return NextResponse.json({ data: strategies });
+    const data = strategies.map((s) => ({
+      ...s,
+      leaderWallet: withFriendlyLeader(s.leaderWallet),
+    }));
+    return NextResponse.json({ data });
   } catch (err) {
     console.error("[GET /api/strategies]", err);
     return NextResponse.json({ error: "Failed to load strategies" }, { status: 500 });

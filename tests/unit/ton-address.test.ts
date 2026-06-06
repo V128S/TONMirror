@@ -3,6 +3,8 @@ import {
   toFriendlyAddress,
   shortenFriendly,
   looksRawAddress,
+  isAddressLikeNickname,
+  whaleAlias,
   withFriendlyLeader,
 } from "@/lib/ton-address";
 
@@ -43,11 +45,34 @@ describe("looksRawAddress", () => {
   });
 });
 
+describe("isAddressLikeNickname", () => {
+  it("flags raw, friendly, and shortened addresses; spares human names", () => {
+    expect(isAddressLikeNickname(RAW)).toBe(true);
+    expect(isAddressLikeNickname("UQD6…TcK9")).toBe(true);
+    expect(isAddressLikeNickname("EQAbc123")).toBe(true);
+    expect(isAddressLikeNickname("Alpha Whale")).toBe(false);
+    expect(isAddressLikeNickname("Swift Orca")).toBe(false);
+  });
+});
+
+describe("whaleAlias", () => {
+  it("is deterministic and two words", () => {
+    const a = whaleAlias(RAW);
+    expect(a).toBe(whaleAlias(RAW));      // stable
+    expect(a.split(" ")).toHaveLength(2); // "Adjective Creature"
+  });
+
+  it("varies across different seeds", () => {
+    const aliases = new Set(["a", "b", "c", "d", "e"].map(whaleAlias));
+    expect(aliases.size).toBeGreaterThan(1);
+  });
+});
+
 describe("withFriendlyLeader", () => {
-  it("converts address and regenerates a raw nickname", () => {
+  it("converts the address and replaces a raw nickname with a stable alias", () => {
     const out = withFriendlyLeader({ address: RAW, nickname: "0:b113…1dfe", extra: 1 });
     expect(out.address.startsWith("UQ")).toBe(true);
-    expect(out.nickname).toMatch(/^UQ..…/);
+    expect(out.nickname).toBe(whaleAlias(out.address));
     expect(out.extra).toBe(1); // preserves other fields
   });
 

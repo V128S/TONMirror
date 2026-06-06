@@ -194,6 +194,10 @@ export function TerminalQuoteCard({ onDismiss, ...params }: TerminalQuoteCardPro
       </CardHeader>
 
       <CardBody>
+        <div className="mb-3 border border-phos-border-dim bg-bg-panel px-3 py-2 tm-mono text-[9px] text-phos-mid tracking-[0.08em] leading-relaxed">
+          [ NON-CUSTODIAL ] you review &amp; sign every copy from your own wallet · tonmirror never holds funds
+        </div>
+
         {flow.isQuoting && (
           <div className="space-y-3">
             <CornerBox className="border border-phos-border-dim bg-bg-panel px-3 py-3">

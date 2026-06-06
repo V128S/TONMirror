@@ -1,4 +1,5 @@
 import type { SwapEvent, WhaleScore } from "./types";
+import { whaleAlias } from "@/lib/ton-address";
 
 /** Composite score weights */
 const WEIGHT_VOLUME   = 0.4;
@@ -36,7 +37,7 @@ export function scoreWallet(
       activityScore: 0,
       score:         0,
       tags:          ["auto"],
-      nickname:      shortAddress(address),
+      nickname:      whaleAlias(address),
     };
   }
 
@@ -74,11 +75,6 @@ export function scoreWallet(
     activityScore,
     score,
     tags,
-    nickname: shortAddress(address),
+    nickname: whaleAlias(address),
   };
-}
-
-function shortAddress(addr: string): string {
-  if (addr.length <= 10) return addr;
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }

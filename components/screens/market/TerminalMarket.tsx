@@ -21,6 +21,10 @@ export function TerminalMarket({ leaders, lLoad, lError }: MarketViewProps) {
           <div className="text-center py-12">
             <p className="tm-disp text-phos-hi text-lg">▲ ERR_DB ▲</p>
           </div>
+        ) : leaders.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="tm-mono text-[11px] text-phos-mid tracking-[0.12em]">NO LEADERS · DISCOVERY RUNS DAILY</p>
+          </div>
         ) : leaders.map((leader) => {
           const spark = Array.from({ length: 16 }).map(
             (_, i) => 40 + i * 2 + Math.sin(i * 0.7 + leader.riskScore) * 8 + leader.activityScore * 10,
