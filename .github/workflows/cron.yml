@@ -27,7 +27,9 @@ jobs:
             -X POST -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             "$APP_URL/api/cron/poll-trades")
           echo "poll-trades → HTTP $code"; cat /tmp/poll.out; echo
-          [ "$code" = "200" ] || exit 1
+          # poll-trades acknowledges with 202 (work continues in the background
+          # via after()); confirm-executions returns 200. Accept any 2xx.
+          case "$code" in 2*) ;; *) exit 1 ;; esac
 
       - name: Confirm submitted executions
         if: always()
@@ -36,4 +38,4 @@ jobs:
             -X POST -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             "$APP_URL/api/cron/confirm-executions")
           echo "confirm-executions → HTTP $code"; cat /tmp/confirm.out; echo
-          [ "$code" = "200" ] || exit 1
+          case "$code" in 2*) ;; *) exit 1 ;; esac
