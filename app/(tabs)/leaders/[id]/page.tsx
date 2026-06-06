@@ -18,6 +18,7 @@ import { MicroToggle }  from "@/components/glass/MicroToggle";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge, RiskBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { DecimalInput } from "@/components/ui/DecimalInput";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { TermHeader } from "@/components/terminal/TermHeader";
 import { MirrorBar }   from "@/components/terminal/MirrorBar";
@@ -143,9 +144,10 @@ function StrategyForm({ leaderId, userId, onSuccess, isGlass }: { leaderId: stri
             {form.mode === "fixed_amount" ? "Amount per trade" : "% of leader trade"}
           </div>
           <Glass radius={14} padding={12} className="flex items-center gap-2">
-            <input type="number" min={1} max={form.mode === "percent_of_leader" ? 100 : 9999}
+            <DecimalInput
+              min={1} max={form.mode === "percent_of_leader" ? 100 : 9999}
               value={form.mode === "fixed_amount" ? form.fixedAmount : form.percentOfLeader}
-              onChange={(e) => form.mode === "fixed_amount" ? set("fixedAmount", Number(e.target.value)) : set("percentOfLeader", Number(e.target.value))}
+              onChange={(n) => form.mode === "fixed_amount" ? set("fixedAmount", n) : set("percentOfLeader", n)}
               className="flex-1 bg-transparent text-fg font-mono text-[18px] font-bold outline-none"
               style={{ letterSpacing: "-0.02em" }} />
             <span className="text-subtle" style={{ fontSize: 13 }}>
@@ -216,9 +218,9 @@ function StrategyForm({ leaderId, userId, onSuccess, isGlass }: { leaderId: stri
           <span className="text-[15px] text-phos-hi font-bold">
             <BlinkCaret />{form.mode === "fixed_amount" ? `$${form.fixedAmount}.00` : `${form.percentOfLeader}%`}
           </span>
-          <input type="number" min={1} max={form.mode === "percent_of_leader" ? 100 : 9999}
+          <DecimalInput min={1} max={form.mode === "percent_of_leader" ? 100 : 9999}
             value={form.mode === "fixed_amount" ? form.fixedAmount : form.percentOfLeader}
-            onChange={(e) => form.mode === "fixed_amount" ? set("fixedAmount", Number(e.target.value)) : set("percentOfLeader", Number(e.target.value))}
+            onChange={(n) => form.mode === "fixed_amount" ? set("fixedAmount", n) : set("percentOfLeader", n)}
             className="w-20 bg-transparent text-right text-phos-soft text-[11px] outline-none border-l border-phos-border-dim pl-2" />
         </div>
       </div>
@@ -264,10 +266,22 @@ export default function LeaderDetailPage() {
   const pauseM = usePauseStrategy();
   const deleteM = useDeleteStrategy();
 
+  // Match the app's primary-button look per theme (monochrome glass / phosphor
+  // terminal) instead of the default bright-green Telegram button.
+  const ctaColor =
+    theme === "terminal"   ? "#00ff66"
+    : theme === "glass-dark" ? "#f0f0f2"
+    : "#0a0a0c";
+  const ctaTextColor =
+    theme === "terminal"   ? "#001b0c"
+    : theme === "glass-dark" ? "#0a0a0c"
+    : "#ffffff";
+
   useTelegramMainButton({
-    text: isFollowing ? "✓ FOLLOWING" : "🔮 START COPY-TRADING",
+    text: isFollowing ? "Following ✓" : "Start copy-trading",
     visible: !!leader && !isLoading,
-    color: isFollowing ? "#1a6b35" : "#00b34a",
+    color: isFollowing ? "#8a8a90" : ctaColor,
+    textColor: isFollowing ? "#ffffff" : ctaTextColor,
     disabled: follow.isPending || !userId,
     onClick: () => { if (!isFollowing && leader && userId) follow.mutate({ leaderWalletId: leader.id, userId }); },
   });

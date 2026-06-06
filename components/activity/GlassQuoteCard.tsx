@@ -34,9 +34,15 @@ const primaryBtn: React.CSSProperties = {
 function AmountEditor({ amount, disabled, onApply }: { amount: number; disabled?: boolean; onApply: (n: number) => void }) {
   const [text, setText] = useState(String(amount));
   useEffect(() => { setText(String(amount)); }, [amount]);
-  const parsed  = Number(text);
+  const parsed  = Number(text.replace(",", "."));
   const changed = Number.isFinite(parsed) && parsed > 0 && parsed !== amount;
   const apply   = () => { if (changed) onApply(parsed); };
+  const sanitize = (raw: string) => {
+    let s = raw.replace(/,/g, ".").replace(/[^0-9.]/g, "");
+    const dot = s.indexOf(".");
+    if (dot !== -1) s = s.slice(0, dot + 1) + s.slice(dot + 1).replace(/\./g, "");
+    setText(s);
+  };
   return (
     <div className="mb-3">
       <div className="text-subtle" style={{ fontSize: 11, marginBottom: 4 }}>Amount to swap (USD)</div>
@@ -45,8 +51,8 @@ function AmountEditor({ amount, disabled, onApply }: { amount: number; disabled?
           style={{ background: "var(--chip)", border: "0.5px solid var(--glass-edge)" }}>
           <span className="text-subtle" style={{ fontSize: 16, fontWeight: 600 }}>$</span>
           <input
-            type="number" inputMode="decimal" min="0" step="0.5" value={text}
-            onChange={(e) => setText(e.target.value)}
+            type="text" inputMode="decimal" value={text}
+            onChange={(e) => sanitize(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") apply(); }}
             className="flex-1 bg-transparent outline-none text-fg gl-tnum"
             style={{ fontSize: 16, fontWeight: 700, width: "100%" }}
