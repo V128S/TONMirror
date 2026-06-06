@@ -49,52 +49,77 @@ export const ingestionService = {
     const liveEnabled = process.env.NEXT_PUBLIC_ENABLE_LIVE_SOURCE === "true";
     const tonUsd = liveEnabled ? await getTonUsd() : 0;
 
-    let eventsSeen = 0;
-    let skipped    = 0;
-    let decisions  = 0;
+    // Poll leaders concurrently — the per-leader TonAPI round-trips dominate the
+    // runtime, so running them sequentially blew past the external scheduler's
+    // ~30s request timeout. Each leader is self-contained and never throws.
+    const perLeader = await Promise.all(
+      leaders.map((leader) => pollLeader(leader, source, liveEnabled, tonUsd)),
+    );
 
-    for (const leader of leaders) {
-      try {
-        const trades = await source.getRecentTrades(leader.address);
-
-        for (const event of trades) {
-          eventsSeen += 1;
-
-          // On the live path we copy only the vetted SUPPORTED_PAIRS; anything
-          // else (an unvetted whale token) is ignored — never quoted or executed.
-          // Demo keeps its full seeded variety so the control panel still works.
-          if (liveEnabled && !isSupportedPair(event.soldToken, event.boughtToken)) {
-            skipped += 1;
-            continue;
-          }
-
-          const priced = liveEnabled ? repriceEvent(event, tonUsd) : event;
-
-          // The source fills leaderWalletId from its own registry (often just
-          // the address when not subscribed). Authoritatively bind it to the
-          // DB leader id so decisions attach to the right wallet.
-          const created = await decisionService.processTradeEvent({
-            ...priced,
-            leaderWalletId: leader.id,
-            leaderAddress:  leader.address,
-          });
-
-          decisions  += created;
-        }
-      } catch (err) {
-        await writeErrorLog("poll_leader", leader.id, err);
-      }
-    }
+    const totals = perLeader.reduce(
+      (acc, r) => ({
+        eventsSeen: acc.eventsSeen + r.eventsSeen,
+        skipped:    acc.skipped    + r.skipped,
+        decisions:  acc.decisions  + r.decisions,
+      }),
+      { eventsSeen: 0, skipped: 0, decisions: 0 },
+    );
 
     return {
       leaders:    leaders.length,
-      eventsSeen,
-      skipped,
-      decisions,
+      ...totals,
       durationMs: Date.now() - start,
     };
   },
 };
+
+type LeaderRef = { id: string; address: string };
+type LeaderTally = { eventsSeen: number; skipped: number; decisions: number };
+
+/**
+ * Poll one leader and run its trades through the pipeline. Never throws — any
+ * failure is logged and reported as a zero tally so one bad leader can't break
+ * the batch.
+ */
+async function pollLeader(
+  leader: LeaderRef,
+  source: Awaited<ReturnType<typeof getTradeSource>>,
+  liveEnabled: boolean,
+  tonUsd: number,
+): Promise<LeaderTally> {
+  const tally: LeaderTally = { eventsSeen: 0, skipped: 0, decisions: 0 };
+
+  try {
+    const trades = await source.getRecentTrades(leader.address);
+
+    for (const event of trades) {
+      tally.eventsSeen += 1;
+
+      // On the live path we copy only the vetted SUPPORTED_PAIRS; anything else
+      // (an unvetted whale token) is ignored — never quoted or executed. Demo
+      // keeps its full seeded variety so the control panel still works.
+      if (liveEnabled && !isSupportedPair(event.soldToken, event.boughtToken)) {
+        tally.skipped += 1;
+        continue;
+      }
+
+      const priced = liveEnabled ? repriceEvent(event, tonUsd) : event;
+
+      // The source fills leaderWalletId from its own registry (often just the
+      // address when not subscribed). Authoritatively bind it to the DB leader
+      // id so decisions attach to the right wallet.
+      tally.decisions += await decisionService.processTradeEvent({
+        ...priced,
+        leaderWalletId: leader.id,
+        leaderAddress:  leader.address,
+      });
+    }
+  } catch (err) {
+    await writeErrorLog("poll_leader", leader.id, err);
+  }
+
+  return tally;
+}
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
