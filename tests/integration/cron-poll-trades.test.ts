@@ -1,10 +1,19 @@
 /**
  * Integration tests for GET|POST /api/cron/poll-trades
  *
- * Mocks ingestionService so no DB/network is touched. Verifies the
- * CRON_SECRET Bearer auth gate and the summary passthrough.
+ * Mocks ingestionService so no DB/network is touched. Verifies the CRON_SECRET
+ * Bearer auth gate and the async-ack contract: the route returns 202 instantly
+ * and runs the (idempotent) poll in the background via after().
+ *
+ * `after` is mocked to invoke its callback so we can assert the poll is kicked
+ * off; in production Vercel keeps the function alive until it settles.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+vi.mock("next/server", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("next/server")>();
+  return { ...actual, after: (cb: () => unknown) => { void cb(); } };
+});
 
 vi.mock("@/server/services/ingestion.service", () => ({
   ingestionService: { pollAllLeaders: vi.fn() },
@@ -49,7 +58,7 @@ describe("GET|POST /api/cron/poll-trades", () => {
     expect(res.status).toBe(401);
   });
 
-  it("runs the poll and returns the summary with a valid secret", async () => {
+  it("acknowledges with 202 and kicks off the poll in the background", async () => {
     vi.mocked(ingestionService.pollAllLeaders).mockResolvedValue({
       leaders: 2, eventsSeen: 5, skipped: 0, decisions: 3, durationMs: 42,
     });
@@ -57,8 +66,8 @@ describe("GET|POST /api/cron/poll-trades", () => {
     const res  = await GET(makeRequest({ authorization: `Bearer ${SECRET}` }));
     const json = await res.json();
 
-    expect(res.status).toBe(200);
-    expect(json.data).toMatchObject({ leaders: 2, eventsSeen: 5, decisions: 3 });
+    expect(res.status).toBe(202);
+    expect(json.data).toMatchObject({ accepted: true });
     expect(ingestionService.pollAllLeaders).toHaveBeenCalledOnce();
   });
 
@@ -68,16 +77,13 @@ describe("GET|POST /api/cron/poll-trades", () => {
     });
 
     const res = await POST(makeRequest({ authorization: `Bearer ${SECRET}` }));
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(202);
   });
 
-  it("returns 500 when ingestion throws", async () => {
+  it("still returns 202 even if the background poll rejects", async () => {
     vi.mocked(ingestionService.pollAllLeaders).mockRejectedValue(new Error("boom"));
 
-    const res  = await GET(makeRequest({ authorization: `Bearer ${SECRET}` }));
-    const json = await res.json();
-
-    expect(res.status).toBe(500);
-    expect(json.error).toBe("Ingestion failed");
+    const res = await GET(makeRequest({ authorization: `Bearer ${SECRET}` }));
+    expect(res.status).toBe(202);
   });
 });
