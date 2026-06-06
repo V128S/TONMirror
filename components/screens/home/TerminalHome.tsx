@@ -36,12 +36,16 @@ export function TerminalHome({
 }: HomeViewProps) {
   const [confirmEvent, setConfirmEvent] = useState<ActivityEvent | null>(null);
 
+  // Only surface confirmations for fresh trades — anything older than an hour is
+  // no longer actionable (the live quote would be stale) and just adds noise.
+  const HOUR_MS = 3_600_000;
   const pending = (activity ?? []).filter(
     (e) =>
       e.execution != null &&
       (e.execution.status === "pending" || e.execution.status === "quoted") &&
       e.decision != null &&
-      e.decision.outcome !== "rejected",
+      e.decision.outcome !== "rejected" &&
+      Date.now() - new Date(e.timestamp).getTime() < HOUR_MS,
   );
 
   return (

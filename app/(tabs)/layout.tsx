@@ -22,7 +22,9 @@ export default function TabsLayout({ children }: { children: React.ReactNode }) 
   if (theme === "terminal") {
     return (
       <div className="min-h-screen bg-black text-phos-hi tm-mono relative">
-        <div className="relative h-[47px] z-30">
+        {/* Reserve the faux status bar (47px) + Telegram fullscreen top inset so
+            the ticker rail and header in TermHeader clear the Close/menu buttons. */}
+        <div className="relative z-30" style={{ height: "calc(47px + var(--app-top-inset))" }}>
           <TermStatusBar />
         </div>
         <main className="pb-[80px]">{children}</main>

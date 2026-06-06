@@ -73,7 +73,7 @@ export class TonWebhookTradeSource implements LeaderTradeSource {
    *
    * Falls back to [] on any network/parse error so callers never crash.
    */
-  async getRecentTrades(address: string): Promise<NormalizedTradeEvent[]> {
+  async getRecentTrades(address: string, limit = 20): Promise<NormalizedTradeEvent[]> {
     const leaderWalletId = this.watchedWallets.get(address) ?? address;
 
     try {
@@ -84,9 +84,12 @@ export class TonWebhookTradeSource implements LeaderTradeSource {
       // Live TON/USD rate (cached) for USD estimates — feeds the daily-spend cap.
       const tonUsd = await getTonUsdRate(apiKey);
 
+      // TonAPI caps events at 100 per request — clamp so a wide period view
+      // (used by the whale-activity endpoint) still makes a single valid call.
+      const safeLimit = Math.min(Math.max(limit, 1), 100);
       const url =
         `https://tonapi.io/v2/accounts/${encodeURIComponent(address)}/events` +
-        `?limit=20&subject_only=true&initiator=true`;
+        `?limit=${safeLimit}&subject_only=true&initiator=true`;
 
       const res = await fetchWithRetry(url, { headers });
       if (!res.ok) {

@@ -36,8 +36,9 @@ export interface LeaderTradeSource {
   subscribeToWallet(address: string): Promise<void>;
   /** Stop tracking a wallet */
   unsubscribeFromWallet(address: string): Promise<void>;
-  /** Pull recent trades for a wallet (used on demand) */
-  getRecentTrades(address: string): Promise<NormalizedTradeEvent[]>;
+  /** Pull recent trades for a wallet (used on demand). `limit` caps how many
+   *  recent events to fetch — defaults to the ingestion window when omitted. */
+  getRecentTrades(address: string, limit?: number): Promise<NormalizedTradeEvent[]>;
   /** Register a handler that receives new events */
   onTrade(handler: TradeEventHandler): void;
 }

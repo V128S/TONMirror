@@ -218,14 +218,14 @@ export class MockLeaderTradeSource implements LeaderTradeSource {
     this.wallets.delete(address);
   }
 
-  async getRecentTrades(address: string): Promise<NormalizedTradeEvent[]> {
+  async getRecentTrades(address: string, limit = 20): Promise<NormalizedTradeEvent[]> {
     const meta  = this.wallets.get(address);
     const tier  = meta?.tier ?? tierForAddress(address);
     const pool  = TEMPLATES[tier] ?? TEMPLATES.steady;
     const now   = Date.now();
     const hour  = 3_600_000;
 
-    return pool.map((tpl, i) =>
+    return pool.slice(0, limit).map((tpl, i) =>
       buildEvent(
         tpl,
         meta?.id ?? address,

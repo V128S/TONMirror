@@ -16,7 +16,7 @@ import { MicroToggle }  from "@/components/glass/MicroToggle";
 
 // ── Shared / Terminal imports ───────────────────────────────────────────
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Badge, RiskBadge, DecisionBadge } from "@/components/ui/Badge";
+import { Badge, RiskBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { TermHeader } from "@/components/terminal/TermHeader";
@@ -28,7 +28,7 @@ import { BlinkCaret }  from "@/components/fx/BlinkCaret";
 import { formatUsd, formatPercent, formatAmount, formatRelativeTime, shortenAddress } from "@/lib/format";
 import { useLeader, useFollowLeader } from "@/hooks/useLeaders";
 import { useStrategies, usePauseStrategy, useDeleteStrategy } from "@/hooks/useStrategies";
-import { useActivity } from "@/hooks/useActivity";
+import { useLeaderTrades, type WhalePeriod, type WhaleTradeDirection } from "@/hooks/useLeaderTrades";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useTelegramMainButton, useTelegramSecondaryButton } from "@/hooks/useTelegramButton";
 
@@ -78,6 +78,21 @@ function ToggleRow({ label, description, checked, onChange }: {
       </button>
     </div>
   );
+}
+
+/* ── Whale activity helpers ──────────────────────────────────────────── */
+const PERIODS: { v: WhalePeriod; label: string; sub: string }[] = [
+  { v: "day",   label: "Day",   sub: "24h" },
+  { v: "week",  label: "Week",  sub: "7d"  },
+  { v: "month", label: "Month", sub: "30d" },
+];
+
+function dirLabel(d: WhaleTradeDirection): string {
+  return d === "buy" ? "BUY" : d === "sell" ? "SELL" : "SWAP";
+}
+
+function dirVariant(d: WhaleTradeDirection): "success" | "warning" | "muted" {
+  return d === "buy" ? "success" : d === "sell" ? "warning" : "muted";
 }
 
 /* ── Shared strategy form — theme-aware internally via Card/Button ───── */
@@ -238,7 +253,10 @@ export default function LeaderDetailPage() {
   const { userId } = useCurrentUser();
   const { data: leader, isLoading, isError } = useLeader(id);
   const { data: strategies } = useStrategies(userId ?? undefined);
-  const { data: activity, isLoading: activityLoading } = useActivity({ leaderId: id, limit: 10 });
+  const [period, setPeriod] = useState<WhalePeriod>("week");
+  const { data: whale, isLoading: whaleLoading } = useLeaderTrades(id, period);
+  const trades = whale?.trades;
+  const stats  = whale?.stats;
 
   const isFollowing = strategies?.some((s) => s.leaderWalletId === id) ?? false;
   const [editOpen, setEditOpen] = useState(false);
@@ -392,23 +410,45 @@ export default function LeaderDetailPage() {
             </>
           )}
           <div>
-            <MirrorBar label="RECENT · TRADES" />
+            <MirrorBar label="WHALE · ACTIVITY" />
+            {/* Period selector */}
+            <div className="grid grid-cols-3 gap-1 mt-1.5">
+              {PERIODS.map((p) => (
+                <SegPick key={p.v} small on={period === p.v} onClick={() => setPeriod(p.v)}>
+                  {p.label.toUpperCase()}·{p.sub}
+                </SegPick>
+              ))}
+            </div>
+            {/* Period stats */}
+            <div className="grid grid-cols-3 gap-1.5 mt-1.5">
+              {[
+                { l: "TRADES",  v: whaleLoading ? "…" : String(stats?.tradeCount ?? 0) },
+                { l: "VOL·USD", v: whaleLoading ? "…" : formatUsd(stats?.volumeUsd ?? 0) },
+                { l: "AVG",     v: whaleLoading ? "…" : stats?.avgSizeUsd != null ? formatUsd(stats.avgSizeUsd) : "—" },
+              ].map((c) => (
+                <div key={c.l} className="border border-phos-border-dim p-2 text-center" style={{ background: "rgba(0,255,102,0.03)" }}>
+                  <div className="text-[9px] text-phos-mid tracking-[0.15em]">[{c.l}]</div>
+                  <div className="tm-disp tm-glow text-[14px] text-phos-hi mt-0.5">{c.v}</div>
+                </div>
+              ))}
+            </div>
+            {/* Trades list */}
             <div className="mt-1.5 border border-phos-border-dim bg-bg-panel">
-              {activityLoading ? (
+              {whaleLoading ? (
                 <div className="p-2 space-y-1">{[1,2,3].map((i) => <Skeleton key={i} className="w-full h-10" />)}</div>
-              ) : activity && activity.length > 0 ? (
-                activity.map((e, i) => (
-                  <div key={e.id} className={`grid items-center gap-2 px-2.5 py-1.5 text-[10px] ${i ? "border-t border-dashed border-phos-border-dim" : ""}`}
+              ) : trades && trades.length > 0 ? (
+                trades.map((t, i) => (
+                  <div key={t.id} className={`grid items-center gap-2 px-2.5 py-1.5 text-[10px] ${i ? "border-t border-dashed border-phos-border-dim" : ""}`}
                     style={{ gridTemplateColumns: "52px 1fr auto" }}>
-                    <span className="text-phos-mid">{new Date(e.timestamp).toLocaleTimeString("en-GB",{hour12:false}).slice(0,5)}</span>
-                    <span className="text-phos-hi tm-mono">{formatAmount(e.soldAmountDecimal)} {e.soldToken} → {e.boughtToken}</span>
+                    <span className="text-phos-mid">{new Date(t.timestamp).toLocaleTimeString("en-GB",{hour12:false}).slice(0,5)}</span>
+                    <span className="text-phos-hi tm-mono">{formatAmount(t.soldAmountDecimal)} {t.soldToken} → {t.boughtToken}</span>
                     <span className="text-phos-soft tm-mono">
-                      {e.decision && <DecisionBadge decision={e.decision.outcome} />}{" "}
-                      {e.usdEstimate != null && formatUsd(e.usdEstimate)}
+                      <span style={{ color: t.direction === "buy" ? "#00ff66" : t.direction === "sell" ? "#ffcc44" : "#7aa88a" }}>{dirLabel(t.direction)}</span>{" "}
+                      {t.usdEstimate != null && formatUsd(t.usdEstimate)}
                     </span>
                   </div>
                 ))
-              ) : <p className="text-phos-mid text-[10px] text-center py-4">no trades recorded yet.</p>}
+              ) : <p className="text-phos-mid text-[10px] text-center py-4">no trades in this window.</p>}
             </div>
           </div>
         </div>
@@ -528,42 +568,78 @@ export default function LeaderDetailPage() {
           </>
         )}
 
-        {/* Recent trades */}
+        {/* Whale activity — period-switchable trades + stats */}
         <div>
-          <SectionLabel right={`${activity?.length ?? 0} trades`}>Recent trades</SectionLabel>
+          <SectionLabel right={whaleLoading ? "…" : `${stats?.tradeCount ?? 0} trades`}>
+            Whale activity
+          </SectionLabel>
+
+          {/* Period selector */}
+          <div className="grid grid-cols-3 gap-2 mb-2.5">
+            {PERIODS.map((p) => (
+              <button key={p.v} onClick={() => setPeriod(p.v)}
+                className="rounded-[14px] py-2 text-center transition-colors"
+                style={{
+                  background: period === p.v ? "rgb(var(--text1))" : "var(--glass-hi)",
+                  color: period === p.v ? "rgb(var(--bg))" : "rgb(var(--text2))",
+                  border: "0.5px solid var(--glass-edge)",
+                }}>
+                <div style={{ fontSize: 13, fontWeight: period === p.v ? 600 : 500 }}>{p.label}</div>
+                <div style={{ fontSize: 10, opacity: 0.7 }}>{p.sub}</div>
+              </button>
+            ))}
+          </div>
+
+          {/* Period stats */}
+          <div className="grid grid-cols-3 gap-2 mb-2.5">
+            {[
+              { label: "Trades",   value: whaleLoading ? "…" : String(stats?.tradeCount ?? 0) },
+              { label: "Volume",   value: whaleLoading ? "…" : formatUsd(stats?.volumeUsd ?? 0) },
+              { label: "Avg size", value: whaleLoading ? "…" : stats?.avgSizeUsd != null ? formatUsd(stats.avgSizeUsd) : "—" },
+            ].map((s) => (
+              <Glass key={s.label} radius={14} padding={10} className="text-center">
+                <div className="text-subtle" style={{ fontSize: 10 }}>{s.label}</div>
+                <div className="text-fg gl-tnum mt-1" style={{ fontSize: 15, fontWeight: 700 }}>{s.value}</div>
+              </Glass>
+            ))}
+          </div>
+
+          {/* Trades list */}
           <Glass radius={22} padding={0} className="overflow-hidden">
-            {activityLoading ? (
+            {whaleLoading ? (
               <div className="p-3 space-y-2">
                 {[1,2,3].map((i) => <Skeleton key={i} className="h-12" />)}
               </div>
-            ) : activity && activity.length > 0 ? (
-              activity.map((e, i, arr) => (
-                <div key={e.id}
+            ) : trades && trades.length > 0 ? (
+              trades.map((t, i, arr) => (
+                <div key={t.id}
                   className="grid items-center gap-2.5 px-3.5 py-3"
                   style={{ gridTemplateColumns: "48px 1fr auto", borderBottom: i < arr.length-1 ? "0.5px solid rgb(var(--hair)/0.08)" : "none" }}>
                   <span className="font-mono text-subtle" style={{ fontSize: 11 }}>
-                    {new Date(e.timestamp).toLocaleTimeString("en-GB",{hour12:false}).slice(0,5)}
+                    {new Date(t.timestamp).toLocaleTimeString("en-GB",{hour12:false}).slice(0,5)}
                   </span>
                   <div className="min-w-0">
                     <div className="text-fg truncate" style={{ fontSize: 13, fontWeight: 500 }}>
-                      {formatAmount(e.soldAmountDecimal)} {e.soldToken} → {e.boughtToken}
+                      {formatAmount(t.soldAmountDecimal)} {t.soldToken} → {t.boughtToken}
                     </div>
                     <div className="text-subtle" style={{ fontSize: 11, marginTop: 1 }}>
-                      {formatRelativeTime(e.timestamp)}
+                      {formatRelativeTime(t.timestamp)}
                     </div>
                   </div>
                   <div className="text-right">
-                    {e.decision && <DecisionBadge decision={e.decision.outcome} />}
-                    {e.usdEstimate != null && (
+                    <Badge variant={dirVariant(t.direction)}>{dirLabel(t.direction)}</Badge>
+                    {t.usdEstimate != null && (
                       <div className="text-subtle gl-tnum" style={{ fontSize: 11, marginTop: 2 }}>
-                        {formatUsd(e.usdEstimate)}
+                        {formatUsd(t.usdEstimate)}
                       </div>
                     )}
                   </div>
                 </div>
               ))
             ) : (
-              <div className="text-center py-8 text-subtle" style={{ fontSize: 12 }}>No trades recorded yet.</div>
+              <div className="text-center py-8 text-subtle" style={{ fontSize: 12 }}>
+                No trades in this window.
+              </div>
             )}
           </Glass>
         </div>
