@@ -5,6 +5,11 @@ const nextConfig: NextConfig = {
   // Pin workspace root to this directory (prevents lockfile confusion)
   outputFileTracingRoot: path.join(__dirname),
 
+  // Don't bundle the Omniston SDK into the serverless function — Next's bundling
+  // mangles its protobuf runtime ("b.mask is not a function" at quote time).
+  // Externalizing requires it from node_modules at runtime, preserving structure.
+  serverExternalPackages: ["@ston-fi/omniston-sdk", "isomorphic-ws", "ws"],
+
   // Pre-existing eslint-config-next / ESLint 9 flat-config incompatibility.
   // Type-check still runs via `tsc --noEmit` in CI.
   eslint: { ignoreDuringBuilds: true },
