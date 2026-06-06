@@ -155,11 +155,15 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       const applyInsets = () => {
         const safeTop    = tgx.safeAreaInset?.top ?? 0;
         const contentTop = tgx.contentSafeAreaInset?.top ?? 0;
-        // +12px breathing room so the ticker clears Telegram's Close/menu buttons.
-        const top = safeTop + contentTop + 12;
-        if (safeTop + contentTop > 0) {
-          document.documentElement.style.setProperty("--app-top-inset", `${top}px`);
-        }
+        const isFs       = !!tgx.isFullscreen;
+        // Telegram's safe-area insets come back 0 on some clients, so the ticker
+        // landed under the Close/menu buttons. In fullscreen enforce a floor that
+        // clears the status bar + button row (~status bar + button row height);
+        // otherwise just use the reported device inset.
+        const top = isFs
+          ? Math.max(safeTop + contentTop, 108)
+          : safeTop + contentTop;
+        document.documentElement.style.setProperty("--app-top-inset", `${top}px`);
       };
       applyInsets();
       [300, 800].forEach((d) => setTimeout(applyInsets, d));
