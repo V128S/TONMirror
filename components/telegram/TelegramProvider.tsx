@@ -155,8 +155,9 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       const applyInsets = () => {
         const safeTop    = tgx.safeAreaInset?.top ?? 0;
         const contentTop = tgx.contentSafeAreaInset?.top ?? 0;
-        const top = safeTop + contentTop;
-        if (top > 0) {
+        // +12px breathing room so the ticker clears Telegram's Close/menu buttons.
+        const top = safeTop + contentTop + 12;
+        if (safeTop + contentTop > 0) {
           document.documentElement.style.setProperty("--app-top-inset", `${top}px`);
         }
       };
