@@ -174,12 +174,18 @@ export class OmnistonExecutionProvider implements ExecutionProvider {
         useRecommendedSlippage: false,
       });
 
+      // Omniston returns payload / stateInit as hex-encoded BoC, but TON Connect
+      // requires base64-encoded BoC — convert, or sendTransaction rejects with
+      // "Invalid 'payload' in message".
+      const hexToBase64 = (hex: string) =>
+        Buffer.from(hex.replace(/^0x/, ""), "hex").toString("base64");
+
       return {
         messages:   tx.messages.map((msg) => ({
           address:   msg.targetAddress,
           amount:    msg.sendAmount,
-          payload:   msg.payload,
-          stateInit: msg.jettonWalletStateInit,
+          payload:   hexToBase64(msg.payload),
+          stateInit: msg.jettonWalletStateInit ? hexToBase64(msg.jettonWalletStateInit) : undefined,
         })),
         validUntil: Math.floor(Date.now() / 1000) + 300,
       };
