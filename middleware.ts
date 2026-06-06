@@ -25,8 +25,17 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-/** Script to inject — must be in /public so it is served as a static asset */
-const INJECT = `<script src="/tg-init.js"></script>`;
+/**
+ * Scripts to inject into <head>, in order (synchronous, so each finishes before
+ * the next runs):
+ *   1. Official Telegram WebApp SDK — without it window.Telegram.WebApp lacks
+ *      Bot API 8.0 methods like requestFullscreen(), so the app only expand()s
+ *      to the large detent instead of going fullscreen.
+ *   2. tg-init.js — expand() → requestFullscreen() → ready() before hydration.
+ */
+const INJECT =
+  `<script src="https://telegram.org/js/telegram-web-app.js"></script>` +
+  `<script src="/tg-init.js"></script>`;
 
 /** Header used to break the self-fetch loop */
 const SKIP = "x-middleware-tg-skip";

@@ -36,8 +36,8 @@ export function GlassTicker({
           below the iOS status bar / Android notch.
           The height grows dynamically to still show 30px of ticker below the inset.
         */
-        height: "calc(env(safe-area-inset-top, 0px) + 30px)",
-        paddingTop: "env(safe-area-inset-top, 0px)",
+        height: "calc(var(--app-top-inset) + 30px)",
+        paddingTop: "var(--app-top-inset)",
         background: "var(--glass)",
         WebkitBackdropFilter: "blur(20px) saturate(180%)",
         backdropFilter: "blur(20px) saturate(180%)",

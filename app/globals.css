@@ -9,6 +9,17 @@
    ════════════════════════════════════════════════════════════════════════ */
 
 :root {
+  /*
+    Top inset for Telegram fullscreen. The official SDK sets --tg-safe-area-inset-top
+    (device status bar) and --tg-content-safe-area-inset-top (room for Telegram's
+    floating Close/menu buttons) once requestFullscreen() succeeds. Outside
+    fullscreen / Telegram these are unset, so we fall back to the iOS env() inset.
+  */
+  --app-top-inset: calc(
+    var(--tg-content-safe-area-inset-top, 0px) +
+    var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px))
+  );
+
   /* RGB triples so Tailwind's alpha-value syntax works. */
   --bg:           240 238 233;
   --text1:        10 10 12;
