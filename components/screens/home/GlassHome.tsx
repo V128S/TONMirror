@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 
+import { useTheme } from "@/components/theme/ThemeProvider";
+import { type WalletBalances } from "@/hooks/useWalletBalances";
 import { CopyConfirmSheet } from "@/components/activity/CopyConfirmSheet";
 import { Glass }        from "@/components/glass/Glass";
 import { PageTitle }    from "@/components/glass/PageTitle";
@@ -22,6 +24,8 @@ export interface HomeViewProps {
   stratLoading: boolean;
   actLoading: boolean;
   wallet: { isConnected: boolean; isRestored: boolean; shortAddress: string | null };
+  balances?: WalletBalances;
+  balLoading?: boolean;
   activeCount: number;
   copiedToday: number;
   totalVolume: number;
@@ -33,11 +37,28 @@ export function GlassHome({
   stratLoading,
   actLoading,
   wallet,
+  balances,
+  balLoading,
   activeCount,
   copiedToday,
   totalVolume,
 }: HomeViewProps) {
   const [confirmEvent, setConfirmEvent] = useState<ActivityEvent | null>(null);
+  const { setTheme } = useTheme();
+
+  // Hidden gesture: 5 quick taps on the "Mirror" title → terminal theme.
+  const tapRef = useRef<{ count: number; timer: ReturnType<typeof setTimeout> | null }>({ count: 0, timer: null });
+  const handleLogoTap = () => {
+    const s = tapRef.current;
+    if (s.timer) clearTimeout(s.timer);
+    s.count += 1;
+    if (s.count >= 5) {
+      s.count = 0;
+      setTheme("terminal");
+      return;
+    }
+    s.timer = setTimeout(() => { s.count = 0; }, 1200);
+  };
 
   const pending = (activity ?? []).filter(
     (e) =>
@@ -52,6 +73,7 @@ export function GlassHome({
       <PageTitle
         overline="TON · Mirror"
         title="Mirror"
+        onTitleClick={handleLogoTap}
       />
 
       <div className="px-4 space-y-3.5">
@@ -96,6 +118,24 @@ export function GlassHome({
               </div>
             </div>
           </div>
+
+          {wallet.isConnected && (
+            <div
+              className="mt-3 pt-3 grid grid-cols-3 gap-2"
+              style={{ borderTop: "0.5px solid rgb(var(--hair) / 0.08)" }}
+            >
+              {([["TON", balances?.TON], ["tsTON", balances?.tsTON], ["USDT", balances?.USDT]] as const).map(
+                ([sym, val]) => (
+                  <div key={sym} className="text-center">
+                    <div className="text-subtle" style={{ fontSize: 10 }}>{sym}</div>
+                    <div className="text-fg gl-tnum" style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>
+                      {balLoading ? "…" : val == null ? "—" : formatAmount(val)}
+                    </div>
+                  </div>
+                ),
+              )}
+            </div>
+          )}
 
           {!wallet.isConnected && (
             <div className="mt-4 flex justify-end">

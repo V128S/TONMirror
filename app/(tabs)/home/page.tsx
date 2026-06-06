@@ -5,6 +5,7 @@ import { TerminalHome } from "@/components/screens/home/TerminalHome";
 import { useStrategies } from "@/hooks/useStrategies";
 import { useActivity } from "@/hooks/useActivity";
 import { useWallet } from "@/hooks/useWallet";
+import { useWalletBalances } from "@/hooks/useWalletBalances";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 export default function HomePage() {
@@ -13,6 +14,7 @@ export default function HomePage() {
   const { data: strategies, isLoading: stratLoading } = useStrategies(userId ?? undefined);
   const { data: activity, isLoading: actLoading } = useActivity({ limit: 10 });
   const wallet = useWallet();
+  const { data: balances, isLoading: balLoading } = useWalletBalances(wallet.address);
 
   const activeCount = strategies?.filter((s) => !s.isPaused).length ?? 0;
   const copiedToday = activity?.filter(
@@ -24,6 +26,7 @@ export default function HomePage() {
   const view = {
     strategies, activity, stratLoading, actLoading,
     wallet: { isConnected: wallet.isConnected, isRestored: wallet.isRestored, shortAddress: wallet.shortAddress },
+    balances, balLoading,
     activeCount, copiedToday, totalVolume,
   };
   return theme === "terminal" ? <TerminalHome {...view} /> : <GlassHome {...view} />;

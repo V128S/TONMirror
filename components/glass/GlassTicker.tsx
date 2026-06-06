@@ -54,7 +54,7 @@ export function GlassTicker({
         style={{ background: "linear-gradient(to left, var(--glass), transparent)" }}
       />
       <div
-        className="absolute inset-y-0 left-0 flex items-center will-change-transform"
+        className="absolute bottom-0 left-0 h-[30px] flex items-center will-change-transform"
         style={{
           width: "max-content",
           animation: `gl-marquee ${speed}s linear infinite`,

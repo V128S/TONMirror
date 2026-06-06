@@ -33,6 +33,8 @@ export function useQuoteFlow({
   const [step, setStep]           = useState<QuoteStep>("idle");
   const [isSending, setIsSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  // User-editable copy size (USD); defaults to the strategy's planned amount.
+  const [amount, setAmount]       = useState<number>(plannedAmount);
 
   useEffect(() => {
     if (step !== "idle") return;
@@ -43,6 +45,18 @@ export function useQuoteFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** Re-fetch the quote for a new (USD) amount — used by the editable amount field. */
+  const requote = (nextAmount: number) => {
+    if (!Number.isFinite(nextAmount) || nextAmount <= 0) return;
+    setAmount(nextAmount);
+    flow.reset();
+    setStep("idle");
+    flow
+      .getQuote({ executionId, soldToken, boughtToken, amountIn: nextAmount, slippageBps })
+      .then(() => setStep("quoted"))
+      .catch(() => {});
+  };
+
   const handleConfirm = async () => {
     if (!flow.quote) return;
 
@@ -52,7 +66,7 @@ export function useQuoteFlow({
     let quoteId = flow.quote.quoteId;
     if (isLiveSource) {
       const fresh = await flow.getQuote({
-        executionId, soldToken, boughtToken, amountIn: plannedAmount, slippageBps,
+        executionId, soldToken, boughtToken, amountIn: amount, slippageBps,
       });
       quoteId = fresh.quoteId;
     }
@@ -69,7 +83,7 @@ export function useQuoteFlow({
     flow.reset();
     setStep("idle");
     flow
-      .getQuote({ executionId, soldToken, boughtToken, amountIn: plannedAmount, slippageBps })
+      .getQuote({ executionId, soldToken, boughtToken, amountIn: amount, slippageBps })
       .then(() => setStep("quoted"))
       .catch(() => {});
   };
@@ -107,6 +121,7 @@ export function useQuoteFlow({
   return {
     flow, wallet, actions,
     step, isSending, sendError,
+    amount, requote,
     handleConfirm, handleRefresh, handleSend,
     isExpired,
   };

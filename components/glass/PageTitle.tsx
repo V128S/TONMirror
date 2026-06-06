@@ -8,10 +8,13 @@ export function PageTitle({
   overline,
   title,
   right,
+  onTitleClick,
 }: {
   overline?: string;
   title: string;
   right?: ReactNode;
+  /** Tap handler on the title text (hidden terminal-theme gesture) */
+  onTitleClick?: () => void;
 }) {
   const pathname = usePathname();
   const showGear = pathname !== "/settings";
@@ -36,11 +39,15 @@ export function PageTitle({
         )}
         <h1
           className="text-fg"
+          onClick={onTitleClick}
           style={{
             fontSize: 34,
             fontWeight: 800,
             letterSpacing: "-0.03em",
             lineHeight: 1.0,
+            cursor: onTitleClick ? "pointer" : undefined,
+            WebkitUserSelect: "none",
+            userSelect: "none",
           }}
         >
           {title}

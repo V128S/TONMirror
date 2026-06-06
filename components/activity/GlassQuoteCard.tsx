@@ -30,6 +30,38 @@ const primaryBtn: React.CSSProperties = {
   boxShadow: "0 8px 22px -6px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.15) inset",
 };
 
+/** Editable copy size (USD). Re-quotes on Apply / Enter. */
+function AmountEditor({ amount, disabled, onApply }: { amount: number; disabled?: boolean; onApply: (n: number) => void }) {
+  const [text, setText] = useState(String(amount));
+  useEffect(() => { setText(String(amount)); }, [amount]);
+  const parsed  = Number(text);
+  const changed = Number.isFinite(parsed) && parsed > 0 && parsed !== amount;
+  const apply   = () => { if (changed) onApply(parsed); };
+  return (
+    <div className="mb-3">
+      <div className="text-subtle" style={{ fontSize: 11, marginBottom: 4 }}>Amount to swap (USD)</div>
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 flex-1 rounded-[14px] px-3 py-2.5"
+          style={{ background: "var(--chip)", border: "0.5px solid var(--glass-edge)" }}>
+          <span className="text-subtle" style={{ fontSize: 16, fontWeight: 600 }}>$</span>
+          <input
+            type="number" inputMode="decimal" min="0" step="0.5" value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") apply(); }}
+            className="flex-1 bg-transparent outline-none text-fg gl-tnum"
+            style={{ fontSize: 16, fontWeight: 700, width: "100%" }}
+          />
+        </div>
+        <button onClick={apply} disabled={disabled || !changed}
+          className="rounded-[14px] px-4 py-2.5 disabled:opacity-40"
+          style={{ fontSize: 13, fontWeight: 600, color: "rgb(var(--text1))", background: "var(--chip)", border: "0.5px solid var(--glass-edge)", whiteSpace: "nowrap" }}>
+          ↻ Update
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function PrimaryButton({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
   return (
     <button onClick={onClick} disabled={disabled}
@@ -183,7 +215,7 @@ function SubmittedView({ txHash, onDismiss }: { txHash: string | null; onDismiss
 }
 
 export function GlassQuoteCard({ onDismiss, ...params }: GlassQuoteCardProps) {
-  const { flow, wallet, actions, step, isSending, sendError, handleConfirm, handleRefresh, handleSend, isExpired } =
+  const { flow, wallet, actions, step, isSending, sendError, amount, requote, handleConfirm, handleRefresh, handleSend, isExpired } =
     useQuoteFlow(params);
 
   return (
@@ -205,6 +237,10 @@ export function GlassQuoteCard({ onDismiss, ...params }: GlassQuoteCardProps) {
       <div className="mb-3 rounded-[14px] px-3 py-2 text-subtle" style={{ fontSize: 11, background: "var(--chip)", border: "0.5px solid var(--glass-edge)" }}>
         🔑 Non-custodial — you review and sign every copy from your own wallet. TonMirror never holds your funds.
       </div>
+
+      {(step === "idle" || step === "quoted") && (
+        <AmountEditor amount={amount} disabled={flow.isQuoting} onApply={requote} />
+      )}
 
       {flow.isQuoting && (
         <div className="space-y-3">
