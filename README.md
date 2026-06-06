@@ -18,6 +18,10 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=for-the-badge&logo=typescript)](https://typescriptlang.org)
 [![STON.fi](https://img.shields.io/badge/STON.fi-Omniston-7B2FBE?style=for-the-badge)](https://ston.fi)
 
+[![Live](https://img.shields.io/badge/▶_Live-tonmirror.vercel.app-39d353?style=flat-square)](https://tonmirror.vercel.app)
+[![Tests](https://img.shields.io/badge/tests-109%2B_unit%2Fintegration_+_E2E-6E9F18?style=flat-square&logo=vitest&logoColor=white)](#-tests)
+[![Mode](https://img.shields.io/badge/mode-demo_+_live_on--chain-0088CC?style=flat-square)](#-demo-vs-live)
+
 </div>
 
 ---
@@ -32,10 +36,10 @@ No charts to read. No signals to decode. No FOMO-driven decisions at 3 AM.
 Just set your strategy once, and let the alpha flow.
 
 ```
-Leader wallet buys STON  →  You buy STON  →  Leader sells STON  →  You sell STON
+Leader wallet buys USDT  →  You buy USDT  →  Leader sells USDT  →  You sell USDT
                                                          ↑
                                               All inside Telegram.
-                                              All through STON.fi.
+                                              All through STON.fi / Omniston.
                                               Your keys. Your coins.
 ```
 
@@ -46,29 +50,28 @@ Leader wallet buys STON  →  You buy STON  →  Leader sells STON  →  You sel
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                   TON Blockchain                        │
-│  Whale wallet executes swap → Event captured            │
+│  Whale wallet executes swap → captured via TonAPI poll  │
+│  (cron) or a live webhook push                          │
 └────────────────────┬────────────────────────────────────┘
-                     │ NormalizedTradeEvent
+                     │ NormalizedTradeEvent (vetted pairs only)
                      ▼
 ┌─────────────────────────────────────────────────────────┐
 │              Strategy Evaluation Engine                 │
-│  ✓ Token allowlist/blocklist                           │
-│  ✓ Max trade size guard                                │
-│  ✓ Daily spend cap                                     │
-│  ✓ Slippage tolerance                                  │
-│  ✓ Risk scoring                                        │
+│  ✓ Token allowlist/blocklist     ✓ Slippage tolerance  │
+│  ✓ Max trade size guard          ✓ Risk scoring        │
+│  ✓ Daily spend cap               ✓ Balance / gas check │
 └────────────────────┬────────────────────────────────────┘
                      │ Decision: accepted / review / rejected
                      ▼
 ┌─────────────────────────────────────────────────────────┐
 │           Omniston Quote Engine (STON.fi)               │
-│  Best route found → Quote preview shown to user        │
+│  Best route found → editable amount → quote preview     │
 └────────────────────┬────────────────────────────────────┘
-                     │ User confirms (or auto-executes)
+                     │ User reviews & confirms (non-custodial)
                      ▼
 ┌─────────────────────────────────────────────────────────┐
 │              TON Connect Wallet                         │
-│  Transaction signed & sent. Activity feed updated.     │
+│  Transaction signed & sent. Activity feed updated.      │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -78,17 +81,41 @@ Leader wallet buys STON  →  You buy STON  →  Leader sells STON  →  You sel
 
 | Feature | Status |
 |---|---|
-| 📡 Follow any TON leader wallet | ✅ |
+| 📡 Follow any TON leader wallet (auto-discovered or manual) | ✅ |
+| 🔭 Live on-chain whale discovery & quality scoring | ✅ |
 | ⚙️ Configurable copy strategy per leader | ✅ |
 | 🔍 Real-time trade signal evaluation | ✅ |
-| 💹 Omniston / STON.fi quote preview | ✅ |
-| 🖐 Manual confirm or auto-copy mode | ✅ |
-| 🛡 Token blocklist & risk guards | ✅ |
+| 📈 Whale activity — Day / Week / Month with **Net PnL & ROI** | ✅ |
+| 💹 Omniston / STON.fi quote preview with **editable swap amount** | ✅ |
+| 👛 Live wallet balances (TON / tsTON / USDT) | ✅ |
+| 🖐 Manual confirm or auto-quote mode (signing always non-custodial) | ✅ |
+| 🛡 Token blocklist, risk guards & balance/gas pre-check | ✅ |
 | 💰 Daily spend cap | ✅ |
-| 📊 Activity feed & portfolio tracking | ✅ |
+| 🏷 Human-friendly addresses (`UQ…`) + whale aliases ("Swift Orca") | ✅ |
+| 📊 Per-user activity feed & portfolio tracking | ✅ |
+| 🔐 Telegram `initData` HMAC auth + execution ownership guards | ✅ |
+| 📱 True Telegram fullscreen (Bot API 8.0) | ✅ |
+| 🎨 Three themes — glass **Light** / **Dark** + hidden **Terminal** | ✅ |
 | 🎮 Full demo mode (no infra needed) | ✅ |
 | 🔗 TON Connect wallet integration | ✅ |
-| 🌑 Telegram-native dark UI | ✅ |
+
+> 🥚 **Hidden gesture:** tap the screen title 5× to flip into the phosphor **Terminal** theme — tap the `TON·MIRROR` logo 5× to flip back.
+
+---
+
+## 🔀 Demo vs Live
+
+TonMirror runs in two interchangeable modes — the **same business logic**, different data sources.
+
+| | 🎮 Demo | 📡 Live |
+|---|---|---|
+| Trade source | `MockLeaderTradeSource` (seeded whales) | `TonWebhookTradeSource` (TonAPI poll + webhook) |
+| Quotes | Mock provider (STON/NOT/DOGS demo tokens) | Omniston RFQ over real liquidity |
+| Execution | Simulated BoC | Real swap signed via TON Connect |
+| Auth | Open (browser/dev) | Telegram `initData` verified + ownership-guarded |
+| Pairs | All demo tokens | Vetted: **TON ⇄ USDT, tsTON → USDT** (real jetton masters, exact decimals) |
+
+Toggle via `NEXT_PUBLIC_ENABLE_DEMO_MODE` / `NEXT_PUBLIC_ENABLE_LIVE_SOURCE`.
 
 ---
 
@@ -106,7 +133,7 @@ cp .env.example .env.local
 
 # 3. Spin up the database
 npx prisma migrate dev
-npx prisma db seed      # loads 3 whale wallets + trade history
+npx prisma db seed      # loads whale wallets + trade history
 
 # 4. Launch
 pnpm dev
@@ -124,10 +151,12 @@ Open [http://localhost:3000](http://localhost:3000) — no Telegram client requi
 | `NEXT_PUBLIC_APP_URL` | Your public URL (TON Connect manifest) |
 | `NEXT_PUBLIC_TONCONNECT_MANIFEST_URL` | Full path to `tonconnect-manifest.json` |
 | `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` | BotFather bot username |
-| `TON_WEBHOOK_SECRET` | Shared secret for live TON events |
-| `TON_API_KEY` | Optional — live TON indexer key |
+| `TELEGRAM_BOT_TOKEN` | Bot token — verifies Telegram `initData` (HMAC) |
+| `TON_API_KEY` | TonAPI key — live whale polling & balances |
+| `TON_WEBHOOK_SECRET` | Shared secret for live TON webhook events |
+| `CRON_SECRET` | Bearer secret guarding the poll/confirm cron routes |
 | `NEXT_PUBLIC_ENABLE_DEMO_MODE` | `"true"` — enables demo control panel |
-| `NEXT_PUBLIC_ENABLE_LIVE_SOURCE` | `"true"` — activates live webhook source |
+| `NEXT_PUBLIC_ENABLE_LIVE_SOURCE` | `"true"` — activates the live TonAPI/webhook source |
 
 ---
 
@@ -142,7 +171,7 @@ Fire up the Settings panel and:
 - 🚫 **Emit a blocked token** — rejection logged instantly
 - 🔄 **Reset all data** — back to factory seed in one tap
 
-Three seeded whale wallets are ready to follow from day one.
+Seeded whale wallets are ready to follow from day one.
 
 ---
 
@@ -150,10 +179,10 @@ Three seeded whale wallets are ready to follow from day one.
 
 ```bash
 pnpm dev             # development server
-pnpm build           # production build
+pnpm build           # production build (prisma generate + next build)
 pnpm lint            # ESLint
 pnpm type-check      # tsc --noEmit
-pnpm test            # Vitest unit tests
+pnpm test            # Vitest unit + integration
 pnpm test:e2e        # Playwright smoke tests
 
 npx prisma studio    # visual DB browser
@@ -166,14 +195,15 @@ npx prisma db seed   # re-seed demo data (idempotent)
 
 ```
 app/          → routes, layouts, screens (Next.js App Router)
-components/   → UI atoms: Button, Card, Badge, TabBar, BottomSheet
-lib/          → env, prisma singleton, format utils
+components/   → UI atoms: Button, Card, Badge, TabBar, BottomSheet, quote cards
+hooks/        → useQuoteFlow, useLeaderTrades, useWalletBalances, multi-tap …
+lib/          → env, prisma singleton, ton-address, fetch-retry, format utils
 modules/      → pure TS domain logic (no framework imports)
   ├─ strategy/        → evaluation engine + filter rules
   ├─ trade-ingestion/ → MockLeaderTradeSource + TonWebhookTradeSource
   ├─ omniston/        → QuoteProvider adapter (STON.fi / Omniston)
-  └─ execution/       → PreparedExecution builder
-server/       → services, repositories, background jobs
+  └─ execution/       → PreparedExecution builder (hex→base64 BoC)
+server/       → services, repositories, auth (initData), background jobs
 prisma/       → schema + idempotent seed
 tests/        → unit / integration / e2e
 ```
@@ -187,16 +217,18 @@ tests/        → unit / integration / e2e
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 15 App Router |
+| Framework | Next.js 15 App Router (`after()` background jobs) |
 | Language | TypeScript (strict) |
-| Styling | Tailwind CSS |
+| Styling | Tailwind CSS (3 themes) |
 | Data fetching | TanStack Query |
 | Validation | Zod |
 | Database | PostgreSQL + Prisma |
-| Web3 | @tonconnect/ui-react |
-| DEX | @ston-fi/omniston-sdk-react |
-| Tests | Vitest (18) + Playwright (13) |
-| Package manager | npm / pnpm |
+| Web3 | `@tonconnect/ui-react`, `@ton/core` |
+| DEX | `@ston-fi/omniston-sdk-react` |
+| Indexer | TonAPI (polling, balances, swap parsing) |
+| Auth | Telegram `initData` HMAC verification |
+| Tests | Vitest (109+ unit/integration) + Playwright (E2E) |
+| Package manager | pnpm |
 
 ---
 
@@ -204,7 +236,7 @@ tests/        → unit / integration / e2e
 
 | Document | Description |
 |---|---|
-| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Vercel deploy, BotFather setup, env vars, live webhook config, production checklist |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Vercel deploy, BotFather setup, env vars, live webhook + cron config, production checklist |
 | [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) | Step-by-step hackathon demo script (5 min) |
 
 ---
@@ -212,17 +244,14 @@ tests/        → unit / integration / e2e
 ## 🧪 Tests
 
 ```bash
-npm test -- --run          # 18 unit + integration tests
-npx playwright test        # 13 E2E smoke tests (requires running dev server)
+pnpm test                  # 109+ unit + integration tests (Vitest)
+pnpm test:e2e              # Playwright E2E smoke suite (requires running dev server)
 ```
 
-| Suite | Coverage |
-|---|---|
-| Unit — `strategy` evaluator | 10 tests |
-| Unit — `ton-webhook` parser | 8 tests |
-| Integration — `/api/execution/quote` | 8 tests |
-| Integration — `/api/webhooks/ton` | 5 tests |
-| E2E — full demo flow | 13 tests |
+Coverage spans the strategy evaluator, TonAPI / webhook swap parsing, token-map &
+pricing math, friendly-address conversion & whale aliases, Telegram `initData`
+verification, balance/gas pre-checks, and the execution quote/prepare/submit API —
+plus an end-to-end demo flow in Playwright.
 
 ---
 
