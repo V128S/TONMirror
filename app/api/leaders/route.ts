@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { leadersRepo } from "@/server/repositories/leaders.repo";
+import { withFriendlyLeader, toFriendlyAddress, shortenFriendly } from "@/lib/ton-address";
 
 // ─── GET /api/leaders ─────────────────────────────────────────────────────────
 
@@ -15,7 +16,7 @@ export async function GET(req: Request) {
     ]);
 
     const data = leaders.map((l) => ({
-      ...l,
+      ...withFriendlyLeader(l),
       isFollowing: followedIds.has(l.id),
     }));
 
@@ -50,8 +51,17 @@ export async function POST(req: Request) {
       );
     }
 
-    const data = await leadersRepo.create({ ...parsed.data, sourceType: "manual" });
-    return NextResponse.json({ data }, { status: 201 });
+    // Store addresses in friendly form so the DB stays consistent regardless of
+    // what format the caller supplied.
+    const address  = toFriendlyAddress(parsed.data.address);
+    const nickname = parsed.data.nickname === parsed.data.address
+      ? shortenFriendly(address)
+      : parsed.data.nickname;
+
+    const data = await leadersRepo.create({
+      ...parsed.data, address, nickname, sourceType: "manual",
+    });
+    return NextResponse.json({ data: withFriendlyLeader(data) }, { status: 201 });
   } catch (err: unknown) {
     if (
       typeof err === "object" &&

@@ -10,6 +10,7 @@
  */
 
 import type { WalletCandidate } from "./types";
+import { toFriendlyAddress } from "@/lib/ton-address";
 
 const STONFI_BASE = "https://api.ston.fi";
 
@@ -90,9 +91,12 @@ export async function getPoolSwappers(
       for (const event of json.events ?? []) {
         for (const action of event.actions ?? []) {
           if (action.type !== "JettonSwap" || action.status !== "ok") continue;
-          const swap   = action.JettonSwap;
-          const wallet = swap?.user_wallet?.address;
-          if (!wallet) continue;
+          const swap      = action.JettonSwap;
+          const rawWallet = swap?.user_wallet?.address;
+          if (!rawWallet) continue;
+          // TonAPI returns raw `0:…` addresses — store the user-friendly form so
+          // discovered leaders read cleanly everywhere downstream.
+          const wallet = toFriendlyAddress(rawWallet);
 
           // Rough USD estimate via ton_in (nanotons → TON, ~$2/TON)
           const nanotons = BigInt(swap?.ton_in ?? swap?.ton_out ?? "0");

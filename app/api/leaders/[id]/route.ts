@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { leadersRepo } from "@/server/repositories/leaders.repo";
+import { withFriendlyLeader } from "@/lib/ton-address";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -13,7 +14,7 @@ export async function GET(_req: Request, { params }: Params) {
     if (!leader) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-    return NextResponse.json({ data: leader });
+    return NextResponse.json({ data: withFriendlyLeader(leader) });
   } catch (err) {
     console.error("[GET /api/leaders/[id]]", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
