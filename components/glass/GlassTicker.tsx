@@ -2,14 +2,12 @@
 
 export type TickerItem = { sym: string; pair: string; price: string; delta: number };
 
+// Only the pairs TonMirror actually trades.
 const DEFAULT_PAIRS: TickerItem[] = [
-  { sym: "TON",   pair: "USDT", price: "2.94",    delta:  1.84 },
-  { sym: "BTC",   pair: "USDT", price: "67,420",  delta:  0.42 },
-  { sym: "ETH",   pair: "USDT", price: "3,182",   delta: -0.91 },
-  { sym: "STON",  pair: "TON",  price: "0.2658",  delta:  3.12 },
-  { sym: "NOT",   pair: "USDT", price: "0.0072",  delta:  4.21 },
-  { sym: "HMSTR", pair: "USDT", price: "0.0044",  delta:  0.85 },
-  { sym: "USDT",  pair: "TON",  price: "0.3401",  delta: -0.10 },
+  { sym: "TON",   pair: "USDT", price: "1.53",   delta:  1.84 },
+  { sym: "USDT",  pair: "TON",  price: "0.654",  delta: -0.10 },
+  { sym: "tsTON", pair: "USDT", price: "1.61",   delta:  1.92 },
+  { sym: "tsTON", pair: "TON",  price: "1.05",   delta:  0.08 },
 ];
 
 /**
