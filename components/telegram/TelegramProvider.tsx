@@ -141,9 +141,27 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       const tgx = tg as unknown as {
         requestFullscreen?: () => void;
         isFullscreen?: boolean;
+        safeAreaInset?:        { top?: number; bottom?: number; left?: number; right?: number };
+        contentSafeAreaInset?: { top?: number; bottom?: number; left?: number; right?: number };
         onEvent?: (event: string, cb: () => void) => void;
         offEvent?: (event: string, cb: () => void) => void;
       };
+
+      // Telegram doesn't reliably expose the safe-area as CSS vars, so read the
+      // JS insets and set --app-top-inset ourselves. In fullscreen the top inset
+      // = device status bar (safeAreaInset.top) + Telegram's button row
+      // (contentSafeAreaInset.top), which pushes our ticker below the Close/menu
+      // controls. Falls back to the CSS env() value (globals.css) when unset.
+      const applyInsets = () => {
+        const safeTop    = tgx.safeAreaInset?.top ?? 0;
+        const contentTop = tgx.contentSafeAreaInset?.top ?? 0;
+        const top = safeTop + contentTop;
+        if (top > 0) {
+          document.documentElement.style.setProperty("--app-top-inset", `${top}px`);
+        }
+      };
+      applyInsets();
+      [300, 800].forEach((d) => setTimeout(applyInsets, d));
 
       const tryFullscreen = () => {
         if (typeof tgx.requestFullscreen === "function") {
@@ -187,9 +205,14 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       update();
       tg.onEvent("viewportChanged",    update);
       tg.onEvent("themeChanged",       update);
-      // fullscreenChanged available in newer Bot API versions
+      // Safe-area + fullscreen events available in newer Bot API versions
+      const onInsetEvent = () => { update(); applyInsets(); };
       if (typeof tgx.onEvent === "function") {
-        try { tgx.onEvent("fullscreenChanged", update); } catch { /* ignore */ }
+        try {
+          tgx.onEvent("fullscreenChanged",      onInsetEvent);
+          tgx.onEvent("safeAreaChanged",        applyInsets);
+          tgx.onEvent("contentSafeAreaChanged", applyInsets);
+        } catch { /* ignore */ }
       }
 
       return () => {
@@ -197,7 +220,11 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
         clearTimeout(t2);
         tg.offEvent("viewportChanged", update);
         tg.offEvent("themeChanged",    update);
-        try { tgx.offEvent?.("fullscreenChanged", update); } catch { /* ignore */ }
+        try {
+          tgx.offEvent?.("fullscreenChanged",      onInsetEvent);
+          tgx.offEvent?.("safeAreaChanged",        applyInsets);
+          tgx.offEvent?.("contentSafeAreaChanged", applyInsets);
+        } catch { /* ignore */ }
       };
     } else {
       // Dev / browser fallback — mock user, actual window height

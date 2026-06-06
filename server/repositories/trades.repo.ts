@@ -53,22 +53,29 @@ export const tradesRepo = {
    */
   async activityFeed(options?: {
     leaderId?: string;
+    userId?:   string;
     limit?:    number;
     cursor?:   string;
   }) {
-    const { leaderId, limit = 30, cursor } = options ?? {};
+    const { leaderId, userId, limit = 30, cursor } = options ?? {};
 
     return prisma.tradeEvent.findMany({
       where: {
         ...(leaderId ? { leaderWalletId: leaderId } : {}),
         ...(cursor   ? { id: { lt: cursor } } : {}),
+        // When scoped to a user, only surface trades this user actually has a
+        // decision on (their copies) — so they never see or try to confirm
+        // another user's executions.
+        ...(userId   ? { decisions: { some: { userId } } } : {}),
       },
       include: {
         leaderWallet: true,
         decisions: {
+          // Show this user's decision per trade when scoped; otherwise latest.
+          ...(userId ? { where: { userId } } : {}),
           include: { executions: true },
           orderBy: { createdAt: "desc" },
-          take:    1, // latest decision per trade
+          take:    1,
         },
       },
       orderBy: { timestamp: "desc" },

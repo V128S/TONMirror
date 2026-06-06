@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { authHeaders } from "@/lib/telegram-init";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,7 +55,8 @@ export function useActivity(options?: { leaderId?: string; limit?: number }) {
       const params = new URLSearchParams();
       if (leaderId) params.set("leaderId", leaderId);
       params.set("limit", String(limit));
-      const res = await fetch(`/api/activity?${params}`);
+      // Send initData so the server scopes the feed to this user's own copies.
+      const res = await fetch(`/api/activity?${params}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to load activity");
       const json = await res.json();
       return json.data;

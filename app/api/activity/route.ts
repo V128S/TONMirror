@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { tradesRepo } from "@/server/repositories/trades.repo";
+import { resolveAuthUserId } from "@/server/auth/telegram-auth";
 import { toFriendlyAddress, whaleAlias, isAddressLikeNickname } from "@/lib/ton-address";
 
 const querySchema = z.object({
@@ -27,7 +28,13 @@ export async function GET(req: Request) {
       );
     }
 
-    const events = await tradesRepo.activityFeed(parsed.data);
+    // Scope the feed to the signed-in user's own copies when we can identify
+    // them (real Telegram client). Falls back to a userId query param, else the
+    // global feed (browser/demo).
+    const userId =
+      (await resolveAuthUserId(req)) ?? searchParams.get("userId") ?? undefined;
+
+    const events = await tradesRepo.activityFeed({ ...parsed.data, userId });
 
     // Normalize to a clean response shape
     type ActivityEvent = (typeof events)[number];
