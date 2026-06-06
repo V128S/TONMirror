@@ -135,6 +135,11 @@ export async function middleware(req: NextRequest) {
   // Content-Length would be wrong after injection — remove it so the
   // browser uses chunked transfer encoding instead of cutting the body short.
   responseHeaders.delete("content-length");
+  // Never cache the HTML shell. Telegram's iOS webview was serving a stale
+  // bundle for many minutes even after "Clear Cache"; no-store forces it to
+  // refetch the document (and thus the latest hashed JS chunks) every open.
+  // Static /_next chunks stay immutable-cached (different path, untouched here).
+  responseHeaders.set("cache-control", "no-store, max-age=0, must-revalidate");
 
   return new NextResponse(upstream.body.pipeThrough(transform), {
     status:     upstream.status,
